@@ -2,9 +2,13 @@
 
 ## Mandatory location
 
-**All NapCat project code execution must take place on the maintainer-designated remote test server and inside a dedicated, disposable test container there.** This applies to dependency installation, package scripts, type checking, unit tests, builds, smoke tests, and application startup.
+**All project type checking, unit tests, integration tests, smoke tests, and application startup must take place on the maintainer-designated remote test server and inside a dedicated, disposable test container there.** Dependency installation and build validation for those tests use the same isolated container.
 
-Do not execute project code, install project dependencies, or run any project tests/builds on the developer workstation, a production machine, or a GitHub-hosted runner. Do not enable GitHub Actions that run this repository's tests. The upstream workflows are archived under `.github/upstream-workflows-disabled/` and must stay outside `.github/workflows/` unless the test-execution policy is deliberately revised.
+Do not install project dependencies or run project tests/builds on the developer workstation or a production machine. Do not enable GitHub Actions that run this repository's tests. The upstream workflows are archived under `.github/upstream-workflows-disabled/` and must stay outside `.github/workflows/`.
+
+## Authorized GitHub release builds
+
+The maintainer explicitly authorized GitHub Actions to install build dependencies, compile WebUI/Shell/Framework and the built-in plugin, package runtime dependencies, and publish release artifacts. This exception is limited to `.github/workflows/release-package.yml`. It must not run type checking, tests, QQ/NapCat sessions, or application startup. `.github/workflows/commit-format.yml` may read PR commit metadata only; it does not execute PR project code.
 
 ## Isolation requirements
 
@@ -34,7 +38,7 @@ pnpm run typecheck
 pnpm test
 ```
 
-Build validation is also remote-only. Set `NAPCAT_VERSION=4.18.42` when reproducing the archived release. Run only the build target under investigation after type checking and tests pass.
+Build validation for development remains remote-only. Authorized release packaging uses GitHub Actions as described above. Set `NAPCAT_VERSION=4.18.42` when reproducing the archived release; the `v0.0.1` release workflow injects `NAPCAT_VERSION=0.0.1`.
 
 The Linux remote test job does not replace Windows-specific loader checks or a deliberately provisioned, non-production QQ end-to-end test. Do not run those checks on a production QQ account or server.
 

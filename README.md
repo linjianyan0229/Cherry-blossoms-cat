@@ -1,87 +1,51 @@
-<img src="https://napneko.github.io/assets/newnewlogo.png" width = "305" height = "411" alt="NapCat" align=right />
-<div align="center">
+# [**Cherry-blossoms-cat**](https://github.com/linjianyan0229/Cherry-blossoms-cat)
 
-# NapCat
+**Cherry-blossoms-cat** 是一条面向个人使用的 NapCat 源码维护分支。项目以 NapCat `v4.18.42` 源码快照为基线，持续跟进 QQ/NTQQ 客户端版本变化，首个内测版本为 `0.0.1`。
 
-_Modern protocol-side framework implemented based on NTQQ._
+本仓库的项目名称和发行包名称为 Cherry-blossoms-cat；底层核心源自 NapCat，保留原有版权、许可证和各组件的第三方许可声明。它不是对 NapCat 原项目来源或权利的替代声明。
 
-> 云起兮风生，心向远方兮路未曾至.
+## 内测发行包
 
-</div>
+GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发行包，并将它们作为 GitHub 预发行版附件发布。首版内测使用标签 `v0.0.1`。
 
----
+发布附件：
 
-## New Framework ?
+- `Cherry-blossoms-cat-Shell-0.0.1.zip`：Shell 运行包
+- `Cherry-blossoms-cat-Framework-0.0.1.zip`：Framework 运行包
+- `SHA256SUMS.txt`：附件校验值
 
-可以试试更新更好用的 [SnowLuma](https://github.com/SnowLuma/SnowLuma) 作为NapCat Gui替代品。
+构建工作流仅负责打包，不在 GitHub Runner 上执行测试。所有类型检查和项目测试都必须在 [指定的隔离测试服务器](TESTING.md) 上执行。
 
-## Welcome
+## 主要功能
 
-- NapCatQQ is a modern implementation of the Bot protocol based on NTQQ.
-  - NapCatQQ 是现代化的基于 NTQQ 的 Bot 协议端实现
+- Shell 和 Framework 两种运行方式。
+- 基于 QQ/NTQQ 原生 `wrapper.node` 接入客户端会话，并通过 OneBot 11 暴露机器人 API 和事件。
+- 提供 WebUI 用于登录、网络配置和插件管理。
+- 支持按配置启用 OneBot HTTP、HTTP SSE、HTTP 回调、正向 WebSocket 和反向 WebSocket。
+- 带有针对 QQ 客户端版本、Build、平台和架构的兼容性适配。
 
-## Feature
+## 安装与使用
 
-- **Easy to Use**
-  - 作为初学者能够轻松使用.
-- **Quick and Efficient**
-  - 在低内存操作系统长时运行.
-- **Rich API Interface**
-  - 完整实现了大部分标准接口.
-- **Stable and Reliable**
-  - 持续稳定的开发与维护.
+1. 在 [Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases) 下载与你的部署方式匹配的 Shell 或 Framework 包。
+2. 依照随包目录结构部署，并按运行模式准备对应的 QQ/NTQQ 客户端及运行环境。
+3. 启动后在 WebUI 中登录并按需配置 OneBot 连接与访问令牌。
+4. 首次用于重要账号前，先在隔离环境验证登录、消息收发、重连和插件行为。
 
-## Quick Start
+本仓库发布的是核心运行包，不包含 QQ 客户端。运行时需要匹配环境提供的 QQ 文件及原生模块。
 
-可前往 [Release](https://github.com/NapNeko/NapCatQQ/releases/) 页面下载最新版本
+## QQ/NTQQ 版本兼容
 
-**首次使用**请务必查看如下文档看使用教程
+Cherry-blossoms-cat 发行版本 `0.0.1` 与 QQ/NTQQ 客户端的版本号是两套独立版本。客户端更新后，应依据完整 QQ 版本、Build、操作系统和架构检查版本参数、`wrapper.node` 接口与 native hook 适配，不能仅凭 TypeScript 构建成功认定客户端兼容。详细维护要点见 [MAINTAINING.md](MAINTAINING.md)。
 
-> 项目非盈利，涉及 对接问题/基础问题/下层框架问题 请自行搜索解决，本项目社区不提供此类解答。
+## 开发和提交
 
-## Link
+- 项目源码测试只能在 [指定隔离测试服务器](TESTING.md) 的独立容器内运行。
+- GitHub Actions 只自动构建发布包，并校验 PR 提交标题格式，不运行项目测试。
+- 提交标题严格使用中文格式：`1、功能：中文描述`、`2、修复：中文描述` 或 `3、文档维护：中文描述`。
+- `main` 是稳定分支，日常变更走 PR；不得强推或绕过评审直接改写主分支。
 
-| Docs | [![Github.IO](https://img.shields.io/badge/docs%20on-Github.IO-orange)](https://napneko.github.io/) | [![Cloudflare.Worker](https://img.shields.io/badge/docs%20on-Cloudflare.Worker-black)](https://doc.napneko.icu/) | [![Cloudflare.HKServer](https://img.shields.io/badge/docs%20on-Cloudflare.HKServer-informational)](https://napcat.napneko.icu/) |
-|:-:|:-:|:-:|:-:|
+细则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-| Docs | [![Cloudflare.Pages](https://img.shields.io/badge/docs%20on-Cloudflare.Pages-blue)](https://napneko.pages.dev/) | [![Server.Other](https://img.shields.io/badge/docs%20on-Server.Other-green)](https://napcat.top/) | [![NapCat.Top](https://img.shields.io/badge/docs%20on-NapCat.Top-red)](https://napcat.top/) |
-|:-:|:-:|:-:|:-:|
+## 来源与许可证
 
-| QQ Group | [![NapCat Family Group 4](https://img.shields.io/badge/NapCat%20Family%20Group%204-Join-blue)](https://qm.qq.com/q/E4nfkGD6oK) | [![NapCat Family Group 3](https://img.shields.io/badge/NapCat%20Family%20Group%203-Join-blue)](https://qm.qq.com/q/XyiyGPqa42) | [![NapCat Family Group 2](https://img.shields.io/badge/NapCat%20Family%20Group%202-Join-blue)](https://qm.qq.com/q/gq18RH7o7S) | [![NapCat Family Group 1](https://img.shields.io/badge/NapCat%20Family%20Group%201-Join-blue)](https://qm.qq.com/q/VwpnklcXqo) |
-|:-:|:-:|:-:|:-:|:-:|
-
-| Telegram | [![Telegram](https://img.shields.io/badge/Telegram-napcatqq-blue)](https://t.me/napcatqq) |
-|:-:|:-:|
-
-| DeepWiki | [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/NapNeko/NapCatQQ) |
-|:-:|:-:|
-
-> QQ群因为特殊原因需要入群密钥，请在webui关于页面获取，仅最新的100个版本以内有效。
-
-社区相关日后会进一步加强审核，并严格限制一定时间的入群人数，请具备一定编程基础和问题解决能力再申请入群。
-
-[困困猫猫的高中](https://qm.qq.com/q/14aUVclRUA)
-
-## Thanks
-
-- [Lagrange](https://github.com/LagrangeDev/Lagrange.Core) 对本项目的大力支持 参考部分代码 已获授权
-
-- [AstrBot](https://github.com/AstrBotDevs/AstrBot) 是完美适配本项目的LLM Bot框架 在此推荐一下
-
-- [MaiBot](https://github.com/MaiM-with-u/MaiBot) 一只赛博群友 麦麦 Bot框架 在此推荐一下
-
-- [qq-chat-exporter](https://github.com/shuakami/qq-chat-exporter/) 基于NapCat的消息导出工具 在此推荐一下
-
-- 不过最最重要的 还是需要感谢屏幕前的你哦~
-
----
-
-## License
-
-本项目采用 混合协议 开源，因此使用本项目时，你需要注意以下几点：
-
-1. 第三方库代码或修改部分遵循其原始开源许可.
-2. 本项目获取部分项目授权而不受部分约束
-2. 项目其余逻辑代码采用[本仓库开源许可](./LICENSE).
-
-**本仓库仅用于提高易用性，实现消息推送类功能，此外，禁止任何项目未经仓库主作者授权基于 NapCat 代码开发。使用请遵守当地法律法规，由此造成的问题由使用者和提供违规使用教程者负责。**
+核心源码基线为 NapCat `v4.18.42`，原始提交为 `9335843246e3b7a17944861f3ac8731a259732c2`。本分支保留根目录 [LICENSE](LICENSE) 和源码附带的组件许可证。请在修改、分发或改变用途前核对适用授权；第三方组件按其各自许可证处理。
