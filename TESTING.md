@@ -24,9 +24,14 @@ Inspect the container's mounts and network attachments before execution. If the 
 The archived CI used Node 20.x and pnpm 9. For reproducibility, prepare a Node 20 container on the designated remote test host and use pnpm 9 with the committed lockfile. Commands below are examples to run **inside that isolated remote container only**:
 
 ```sh
-corepack pnpm@9.15.9 install --frozen-lockfile
-corepack pnpm@9.15.9 run typecheck
-corepack pnpm@9.15.9 test
+export PNPM_HOME=/tmp/pnpm-home
+mkdir -p "$PNPM_HOME"
+corepack prepare pnpm@9.15.9 --activate
+corepack enable --install-directory "$PNPM_HOME"
+export PATH="$PNPM_HOME:$PATH"
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm test
 ```
 
 Build validation is also remote-only. Set `NAPCAT_VERSION=4.18.42` when reproducing the archived release. Run only the build target under investigation after type checking and tests pass.
