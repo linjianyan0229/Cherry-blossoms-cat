@@ -1,6 +1,6 @@
-# Private Maintenance Notes
+# Maintenance Notes
 
-This private maintenance repository starts from the NapCat v4.18.42 source snapshot.
+Cherry-blossoms-cat starts from the NapCat v4.18.42 source snapshot and uses its own release version series beginning with 0.0.1.
 
 ## Baseline
 
@@ -25,5 +25,11 @@ QQ supplies `wrapper.node`; this repository contains TypeScript declarations/ada
 
 ## Distribution
 
-This repository is a private, personal maintenance line. Do not enable public visibility or distribute source/builds without rechecking the applicable authorization and component licenses. The root NapCat license is retained unchanged; review licenses for bundled components separately.
+The owner has authorized this maintenance line and configured the repository's audience. Preserve the original NapCat license, source provenance, and bundled component license notices in both source and release packages. Do not widen the audience or change licensing without the owner's explicit instructions.
+
+## Branch and release policy
+
+All changes to `main` go through a pull request and require explicit authorization from the owner. GitHub branch protection requires the commit-title check, resolved conversations, and linear history; force pushes, deletion, and administrator bypass are disabled. See [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory Chinese commit-title format.
+
+GitHub Actions may build and package authorized release tags. Project tests and type checking remain restricted to the designated isolated remote server as documented in [TESTING.md](TESTING.md).
 

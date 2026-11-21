@@ -30,7 +30,7 @@ jobs:
       - name: 设置 pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.15.9
           run_install: false
 
       - name: 设置 Node.js
@@ -87,6 +87,18 @@ jobs:
             )
           done
 
+      - name: 包含项目说明与组件许可证
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in shell framework; do
+            package_dir="packages/napcat-${target}/dist"
+            cp LICENSE README.md MAINTAINING.md TESTING.md CONTRIBUTING.md "$package_dir/"
+            while IFS= read -r -d '' license; do
+              install -D "$license" "$package_dir/licenses/$license"
+            done < <(find packages -type d \( -name node_modules -o -name dist \) -prune -o -type f \( -iname 'LICENSE' -o -iname 'LICENSE.*' -o -iname 'COPYING' \) -print0)
+          done
+
       - name: 准备发行 ZIP 与校验文件
         shell: bash
         run: |
@@ -137,6 +149,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Cherry-blossoms-cat 内测版 ${{ github.ref_name }}
           prerelease: true
+          fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
             Cherry-blossoms-cat-*.zip

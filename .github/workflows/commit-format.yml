@@ -29,7 +29,7 @@ jobs:
               per_page: 100,
             });
 
-            const format = /^[123]、(?:功能|修复|文档维护)：(?=.*\p{Script=Han}).+$/u;
+            const format = /^(?:1、功能|2、修复|3、文档维护)：(?=.*\p{Script=Han}).+$/u;
             const invalid = commits
               .map(commit => commit.commit.message.split(/\r?\n/, 1)[0])
               .filter(subject => !format.test(subject));
