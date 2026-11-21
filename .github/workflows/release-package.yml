@@ -1,0 +1,147 @@
+name: Cherry-blossoms-cat 内测构建
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 内测包版本号
+        required: true
+        default: 0.0.1
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 内测构建-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-package:
+    name: 构建 Shell 和 Framework
+    runs-on: ubuntu-latest
+    steps:
+      - name: 获取源码
+        uses: actions/checkout@v5
+
+      - name: 设置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: 确认发行版本
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            VERSION="${INPUT_VERSION#v}"
+          else
+            VERSION="${REF_NAME#v}"
+          fi
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "版本号格式无效：${VERSION}" >&2
+            exit 1
+          fi
+          echo "NAPCAT_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "发行版本：${VERSION}"
+
+      - name: 安装锁定的工作区依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建两个运行版本
+        run: |
+          set -euo pipefail
+          pnpm --filter napcat-webui-frontend run build
+          pnpm run build:shell
+          pnpm run build:framework
+          pnpm --filter napcat-plugin-builtin run build
+
+      - name: 为运行包安装生产依赖
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in shell framework; do
+            if [[ "$target" == "shell" ]]; then
+              package_dir="packages/napcat-shell/dist"
+            else
+              package_dir="packages/napcat-framework/dist"
+            fi
+            (
+              cd "$package_dir"
+              npm pkg delete devDependencies
+              npm install --omit=dev --package-lock=false
+            )
+          done
+
+      - name: 准备发行 ZIP 与校验文件
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v zip >/dev/null || { echo '缺少 zip 工具' >&2; exit 1; }
+
+          for target in shell framework; do
+            case "$target" in
+              shell)
+                source_dir="packages/napcat-shell/dist"
+                package_name="Cherry-blossoms-cat-Shell-${NAPCAT_VERSION}.zip"
+                ;;
+              framework)
+                source_dir="packages/napcat-framework/dist"
+                package_name="Cherry-blossoms-cat-Framework-${NAPCAT_VERSION}.zip"
+                ;;
+            esac
+
+            if [[ ! -d "$source_dir" || -z "$(find "$source_dir" -mindepth 1 -print -quit)" ]]; then
+              echo "构建产物缺失：${source_dir}" >&2
+              exit 1
+            fi
+
+            (
+              cd "$source_dir"
+              zip -q -r "$GITHUB_WORKSPACE/${package_name}" .
+            )
+          done
+
+          cd "$GITHUB_WORKSPACE"
+          sha256sum Cherry-blossoms-cat-*.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: 上传 GitHub Actions 构建产物
+        uses: actions/upload-artifact@v6
+        with:
+          name: Cherry-blossoms-cat-${{ env.NAPCAT_VERSION }}-内测包
+          path: |
+            Cherry-blossoms-cat-*.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 发布 GitHub 内测版
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Cherry-blossoms-cat 内测版 ${{ github.ref_name }}
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            Cherry-blossoms-cat-*.zip
+            SHA256SUMS.txt
+          body: |
+            Cherry-blossoms-cat 内测版本。此工作流仅构建并打包 Shell 和 Framework，不运行项目测试。
+
+            所有项目测试仅在维护者指定的隔离服务器上运行；请先核对相应 QQ/NTQQ 版本兼容性。
