@@ -29,7 +29,7 @@ mkdir -p "$PNPM_HOME"
 corepack prepare pnpm@9.15.9 --activate
 corepack enable --install-directory "$PNPM_HOME"
 export PATH="$PNPM_HOME:$PATH"
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --store-dir /tmp/pnpm-store
 pnpm run typecheck
 pnpm test
 ```
