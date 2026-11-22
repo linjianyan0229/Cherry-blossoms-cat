@@ -107,6 +107,7 @@ jobs:
             cp compatibility/linux-qq.json "$package_dir/compatibility/linux-qq.json"
             mkdir -p "$package_dir/compatibility/evidence"
             cp compatibility/evidence/linux-qq-54395-native.json "$package_dir/compatibility/evidence/"
+            cp compatibility/evidence/linux-qq-54395-login.json "$package_dir/compatibility/evidence/"
             while IFS= read -r -d '' license; do
               install -D "$license" "$package_dir/licenses/$license"
             done < <(find packages -type d \( -name node_modules -o -name dist \) -prune -o -type f \( -iname 'LICENSE' -o -iname 'LICENSE.*' -o -iname 'COPYING' \) -print0)
@@ -174,7 +175,7 @@ jobs:
 
             所有项目测试仅在维护者指定的隔离服务器上运行；请先核对相应 QQ/NTQQ 版本兼容性。
 
-            本轮 Docker 为 QQ 3.2.35-54395 新版预览：正常 engine 启动后 napi 首次初始化返回 true，packet 在同进程中持续产生双向协议包回调。尚未完成新 QQ 登录、用户消息收发或反检测效果验证；协议包回调不能证明用户消息收发成功。QQ 3.2.34-53644 保留为历史已登录验证基线。
+            本轮 Docker 为 QQ 3.2.35-54395 新版预览：指定远端隔离实例已扫码登录，napi 首次初始化返回 true，packet 持续产生双向协议回调；最近联系人、群历史及按 ID 读取消息成功。尚未验证主动发送消息、长期事件推送或反检测效果。QQ 3.2.34-53644 保留为历史已登录验证基线。
 
             Docker job 成功后追加离线镜像、部署 ZIP 和来源/校验文件。部署 .env 锁定本发行的完整版本，默认 cherry-cat-preview 项目及全新 profile；更新需修改目标版本后执行 update.sh，不更动既有已登录实例。
 
@@ -222,6 +223,8 @@ jobs:
           [[ "$QQ_SHA256" =~ ^[0-9a-f]{64}$ ]]
           [[ "$QQ_BYTES" =~ ^[1-9][0-9]*$ ]]
           [[ "$QQ_URL" == https://qqdl.gtimg.cn/* ]]
+          # Login verification does not promote a preview pin to stable.
+          if [[ "$QQ_CHANNEL" == preview ]]; then [[ "$RELEASE_VERSION" == *-* ]]; fi
 
           # A client without login evidence is restricted to a preview release,
           # and must have both real callback and native initialization evidence.

@@ -10,6 +10,7 @@ import https from 'https';
 import http from 'http';
 import { RequestUtil } from './request';
 import { PromiseTimer } from './helper';
+import { PROJECT_GITHUB_URL } from './project-repository';
 
 // ============== 镜像源列表 ==============
 
@@ -162,7 +163,7 @@ let cacheTimestamp: number = 0;
 async function testMirrorLatency (mirror: string, timeout: number = 5000): Promise<MirrorTestResult> {
   // 使用一个实际存在的小文件来测试（README 或小型 release asset）
   // 用 HEAD 请求，不下载实际内容
-  const testUrl = 'https://github.com/NapNeko/NapCatQQ/releases/latest';
+  const testUrl = `${PROJECT_GITHUB_URL}/blob/main/README.md`;
   const url = buildMirrorUrl(testUrl, mirror);
   const start = Date.now();
 

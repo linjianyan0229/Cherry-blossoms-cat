@@ -47,7 +47,7 @@
       "arch": "x64",
       "projectRelease": "0.0.2-rc.1",
       "requireMappings": true,
-      "validation": "startup-verified",
+      "validation": "login-verified",
       "verifiedOn": "2026-11-22",
       "runtime": "qq-electron",
       "electron": "40.0.0",
@@ -55,6 +55,8 @@
       "nativePacketOffsets": "callback-verified",
       "napiHookOffsets": "init-verified",
       "nativeEvidence": "compatibility/evidence/linux-qq-54395-native.json",
+      "loginEvidence": "compatibility/evidence/linux-qq-54395-login.json",
+      "messageReadVerified": true,
       "package": {
         "url": "https://qqdl.gtimg.cn/qqfile/qqntv2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",
         "officialUrl": "https://qqdl.gtimg.cn/qqfile/QQNTV2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",

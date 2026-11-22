@@ -69,7 +69,7 @@ node scripts/review-linux-native-offsets.cjs /fixtures/53644/wrapper.node \
 
 结果包含全部前缀候选及完整函数的 `exactNormalizedMatch`。该脚本提供版本间的静态对应证据；采用新版本偏移仍须经过真实 Hook 初始化和回调验证。
 
-指定远端的新隔离实例中，正常首次加载的 MoeHoo 返回 `success`，实际捕获双向 `Heartbeat.Alive`、`Client.CorrectTime` 和 `wtlogin.trans_emp` 回调。QQ 引擎就绪后，用首次加载保留的 Napi2Native exports 初始化返回 `true`，MoeHoo 回调继续正常。新 QQ 尚未扫码登录，用户消息与 Buffer 发包的完整响应链仍未验证，反检测效果也未证明。
+指定远端的新隔离实例中，正常首次加载的 MoeHoo 返回 `success`，实际捕获双向 `Heartbeat.Alive`、`Client.CorrectTime` 和 `wtlogin.trans_emp` 回调。QQ 引擎就绪后，用首次加载保留的 Napi2Native exports 初始化返回 `true`，MoeHoo 回调继续正常。随后在全新 profile 中完成扫码登录，`get_rkey` 返回非空结果，最近联系人、群历史和按 ID 读取消息成功。非敏感摘要见 [登录与只读 API 证据](compatibility/evidence/linux-qq-54395-login.json)。私聊没有可用样本，未主动发送消息，短时 WebSocket 观察未收到新消息事件；长期推送和反检测效果尚未验证。
 
 诊断工具须沿用项目的初始化顺序：MoeHoo 不得重复 `process.dlopen`，Napi Hook 必须在 `wrapper.node` 加载完成后安装。原生模块没有保护零基址，提前安装会把裸 RVA 交给 Hook 引擎并触发崩溃。项目现有 Napi 初始化发生在登录后的发包客户端初始化阶段；本轮没有提前移动该调用。Docker 预览包使用 54395，发行门禁要求保留预发布版本后缀，并记录以上验证范围。
 

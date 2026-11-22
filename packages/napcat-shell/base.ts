@@ -630,7 +630,7 @@ export async function NCoreInitShell () {
     logger.setFileLogEnabled(false);
   }
   handleUncaughtExceptions(logger);
-  await applyPendingUpdates(pathWrapper, logger);
+  await applyPendingUpdates(pathWrapper, logger, 'Shell');
 
   // 提前初始化 Native 模块（在登录前加载）
   const basicInfoWrapper = new QQBasicInfoWrapper({ logger });

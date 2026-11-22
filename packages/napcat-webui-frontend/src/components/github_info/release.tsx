@@ -30,7 +30,9 @@ const GithubRelease: React.FC<GithubReleaseProps> = (props) => {
         <span className='text-tiny text-default-600'>{releaseData.name}</span>
         <div className='flex gap-2 text-tiny'>
           <span className='text-default-500'>{releaseTime}</span>
-          <span className='text-success'>Latest</span>
+          <span className={releaseData.prerelease ? 'text-warning' : 'text-success'}>
+            {releaseData.prerelease ? '预发布' : '正式发布'}
+          </span>
         </div>
       </div>
     </div>

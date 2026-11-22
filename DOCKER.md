@@ -1,8 +1,8 @@
 # Cherry-blossoms-cat Docker 内测包
 
-Docker 发行使用同一次 GitHub Actions 构建的 Shell ZIP，不重复编译项目。本轮 **0.0.2-rc.1 新 QQ 预览**镜像只支持 **Linux amd64**，包含锁定的 **QQ 3.2.35-54395** 完整安装树、系统依赖和 Shell；QQ 核心运行于客户端自身的定制 Electron。指定远端新隔离实例中，正常 engine 启动后 napi 首次初始化返回 `true`，同进程 packet 持续产生双向协议包回调。此预览尚未完成新 QQ 扫码登录、用户消息收发或反检测效果验证；协议包回调不代表用户消息收发成功。
+Docker 发行使用同一次 GitHub Actions 构建的 Shell ZIP，不重复编译项目。本轮 **0.0.2-rc.1 新 QQ 预览**镜像只支持 **Linux amd64**，包含锁定的 **QQ 3.2.35-54395** 完整安装树、系统依赖和 Shell；QQ 核心运行于客户端自身的定制 Electron。指定远端新隔离实例已完成扫码登录，正常 engine 启动后 napi 首次初始化返回 `true`，同进程 packet 持续产生双向协议包回调；最近联系人、群历史和按 ID 读取消息均成功。尚未验证主动发送消息、长期事件推送或反检测效果。
 
-QQ **3.2.34-53644** 保留为历史已登录验证基线。预览使用独立项目和全新 profile，不自动替换已有已登录实例。未登录的 QQ pin 必须同时有 `nativePacketOffsets=callback-verified` 和 `napiHookOffsets=init-verified`，且只能以预发布版本发行。
+QQ **3.2.34-53644** 保留为历史已登录验证基线。预览使用独立项目和全新 profile，不自动替换已有已登录实例。构建清单中的 QQ pin 仍按最低启动验证等级审核，不能由镜像构建成功推断账号或消息兼容；新 QQ 预览仅以预发布版本发行。
 
 每个 `v*` 发行标签构建 GHCR 版本镜像与 `latest` 标签，同时在 GitHub Release 附加离线镜像、部署 ZIP、镜像身份/来源和 SHA-256。`latest` 代表最近成功发布的内测构建；旧标签重跑、不同标签并发后，它不保证最高语义版本，也不表示稳定版。Docker job 使用共享发布锁，避免版本与 latest 的推送相互交错。手动运行工作流只生成 Actions 构建产物，不推镜像或发布 Release。构建过程不运行 QQ、项目测试或应用健康检查。
 
@@ -27,6 +27,8 @@ GHCR 新镜像默认可能为私有包；个人使用可保持私有。拉取私
 运行卷至少预留 **2 GB** 可用空间，建议主机有 **2 GB** 以上内存；完整 QQ 副本不能放在小容量或 `noexec` 临时目录。不要以 root、`--privileged` 或 host network 覆盖发行设置。Linux arm64 尚未完成同等验证，没有对应镜像标签。
 
 ## 配置、账号与版本更新
+
+WebUI 的版本检测固定查询 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)，包含完整的已发布预发行版，按语义版本排序，不使用上游版本或 Actions 临时包。镜像设置 `NAPCAT_IMAGE_MANAGED=1`，WebUI 和后端均阻止容器内文件更新；检测到新版本后请按下面的宿主机更新流程操作。此行为需要使用包含更新源修复的新构建，旧镜像不会因仓库合并自动获得修复。
 
 Compose 的 `profile` 卷持久化 QQ 数据及客户端 HOME；`config` 卷保存 Shell/WebUI 配置，`plugins` 卷保存用户插件。内置插件来自同次编译的发行包，仅在插件卷缺少 `napcat-plugin-builtin` 目录时初始化，不覆盖已有插件。`runtime` 卷存放工作目录、缓存、日志及完整 QQ 运行副本，其名字含 QQ Build。首次使用空卷时 Docker 从镜像目录继承 UID 1000 的所有权；已有 bind mount 需要维护者自行准备合适权限。
 

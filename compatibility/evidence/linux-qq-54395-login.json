@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "checked_date": "2026-11-22",
+  "observed_at_utc": "2026-11-22T07:08:27.488Z",
+  "qq_version": "3.2.35-54395",
+  "project_version": "0.0.2-rc.1",
+  "source_commit": "43863956acc15a00997e1d4e120bdb45fabbd624",
+  "platform": "linux.x64",
+  "environment": "maintainer-designated remote dedicated isolated container",
+  "read_only_checks": true,
+  "login": { "phase": "ready", "isLogin": true, "coreReady": true },
+  "checks": {
+    "nc_get_packet_status": { "passed": true },
+    "get_rkey": { "passed": true, "nonempty_array": true, "count": 2 },
+    "get_recent_contact": { "passed": true, "count": 3 },
+    "get_group_msg_history": { "passed": true, "message_count": 1, "segment_types": ["forward"] },
+    "get_msg": { "passed": true, "type": "group" },
+    "get_friend_msg_history": { "sample_available": false }
+  },
+  "privacy": { "identity_saved": false, "message_content_saved": false, "rkey_value_saved": false },
+  "limits": [
+    "No outgoing message was sent.",
+    "Private message history had no available sample.",
+    "A short WebSocket observation received lifecycle events but no new message event.",
+    "Persistent OneBot event destinations were not configured.",
+    "This does not verify long-term session stability or anti-detection effectiveness."
+  ]
+}

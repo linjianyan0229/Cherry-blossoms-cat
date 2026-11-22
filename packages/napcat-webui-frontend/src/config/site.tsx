@@ -13,6 +13,8 @@ import {
   LuPuzzle,
 } from 'react-icons/lu';
 
+import { PROJECT_GITHUB_URL, PROJECT_NAME } from 'napcat-common/src/project-repository';
+
 export type SiteConfig = typeof siteConfig;
 export interface MenuItem {
   label: string;
@@ -24,8 +26,8 @@ export interface MenuItem {
 }
 
 export const siteConfig = {
-  name: 'NapCat',
-  description: 'NapCat WebUI.',
+  name: PROJECT_NAME,
+  description: `${PROJECT_NAME} WebUI.`,
   navItems: [
     {
       label: '基础信息',
@@ -89,7 +91,7 @@ export const siteConfig = {
     },
   ] as MenuItem[],
   links: {
-    github: 'https://github.com/NapNeko/NapCatQQ',
-    docs: 'https://napcat.napneko.icu/',
+    github: PROJECT_GITHUB_URL,
+    docs: `${PROJECT_GITHUB_URL}/blob/main/README.md`,
   },
 };

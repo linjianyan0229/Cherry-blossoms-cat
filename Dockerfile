@@ -49,7 +49,8 @@ ENV HOME=/data/home \
     XDG_CONFIG_HOME=/data/home/.config \
     XDG_CACHE_HOME=/data/home/.cache \
     XDG_DATA_HOME=/data/home/.local/share \
-    IMAGE_QQ_VERSION=$QQ_VERSION
+    IMAGE_QQ_VERSION=$QQ_VERSION \
+    NAPCAT_IMAGE_MANAGED=1
 USER 1000:1000
 WORKDIR /work
 EXPOSE 6099

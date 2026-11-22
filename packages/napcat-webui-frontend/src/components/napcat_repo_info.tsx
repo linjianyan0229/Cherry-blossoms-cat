@@ -2,6 +2,7 @@ import { Listbox, ListboxItem } from '@heroui/listbox';
 import { Spinner } from '@heroui/spinner';
 import { useRequest } from 'ahooks';
 import { MdError } from 'react-icons/md';
+import { PROJECT_API_URL, PROJECT_GITHUB_URL, PROJECT_NAME, PROJECT_RELEASES_URL, PROJECT_REPOSITORY } from 'napcat-common/src/project-repository';
 
 import IconWrapper from '@/components/github_info/icon_wrapper';
 import ItemCounter from '@/components/github_info/item_counter';
@@ -44,45 +45,39 @@ export default function NapCatRepoInfo () {
     data: repoOriData,
     error: repoError,
     loading: repoLoading,
-  } = useRequest(() =>
-    request.get<GirhubRepo>('https://api.github.com/repos/NapNeko/NapCatQQ')
-  );
+  } = useRequest(() => request.get<GirhubRepo>(PROJECT_API_URL), {
+    cacheKey: `${PROJECT_REPOSITORY}:repo`,
+  });
 
   // release info
   const {
     data: releaseOriData,
     error: releaseError,
     loading: releaseLoading,
-  } = useRequest(() =>
-    request.get<GithubReleaseType[]>(
-      'https://api.github.com/repos/NapNeko/NapCatQQ/releases'
-    )
-  );
+  } = useRequest(() => request.get<GithubReleaseType[]>(`${PROJECT_API_URL}/releases`), {
+    cacheKey: `${PROJECT_REPOSITORY}:releases`,
+  });
 
   // pr info
   const {
     data: prData,
     error: prError,
     loading: prLoading,
-  } = useRequest(() =>
-    request.get<GithubPullRequest[]>(
-      'https://api.github.com/repos/NapNeko/NapCatQQ/pulls'
-    )
-  );
+  } = useRequest(() => request.get<GithubPullRequest[]>(`${PROJECT_API_URL}/pulls`), {
+    cacheKey: `${PROJECT_REPOSITORY}:pulls`,
+  });
 
   // contributors info
   const {
     data: contributorsData,
     error: contributorsError,
     loading: contributorsLoading,
-  } = useRequest(() =>
-    request.get<GithubContributor[]>(
-      'https://api.github.com/repos/NapNeko/NapCatQQ/contributors'
-    )
-  );
+  } = useRequest(() => request.get<GithubContributor[]>(`${PROJECT_API_URL}/contributors`), {
+    cacheKey: `${PROJECT_REPOSITORY}:contributors`,
+  });
 
   const repoData = repoOriData?.data;
-  const releaseData = releaseOriData?.data?.[0];
+  const releaseData = releaseOriData?.data?.find(release => !release.draft);
   const prCount = prData?.data?.length || 0;
   const contributorsCount = contributorsData?.data?.length || 0;
 
@@ -90,7 +85,7 @@ export default function NapCatRepoInfo () {
 
   return (
     <Listbox
-      aria-label='NapCat Repo Info'
+      aria-label={`${PROJECT_NAME} Repo Info`}
       className='p-0 gap-0 divide-y divide-default-300/50 dark:divide-default-100/80 bg-content1 max-w-[300px] overflow-visible shadow-small rounded-medium bg-opacity-50 backdrop-blur-sm'
       itemClasses={{
         base: 'px-3 first:rounded-t-medium last:rounded-b-medium rounded-none gap-3 h-12 data-[hover=true]:bg-default-100/80',
@@ -98,11 +93,11 @@ export default function NapCatRepoInfo () {
       onAction={(key: React.Key) => {
         switch (key) {
           case 'releases':
-            openUrl('https://github.com/NapNeko/NapCatQQ/releases', true);
+            openUrl(PROJECT_RELEASES_URL, true);
             break;
           case 'contributors':
             openUrl(
-              'https://github.com/NapNeko/NapCatQQ/graphs/contributors',
+              `${PROJECT_GITHUB_URL}/graphs/contributors`,
               true
             );
             break;
@@ -113,19 +108,19 @@ export default function NapCatRepoInfo () {
             );
             break;
           case 'watchers':
-            openUrl('https://github.com/NapNeko/NapCatQQ/watchers', true);
+            openUrl(`${PROJECT_GITHUB_URL}/watchers`, true);
             break;
           case 'star':
-            openUrl('https://github.com/NapNeko/NapCatQQ/stargazers', true);
+            openUrl(`${PROJECT_GITHUB_URL}/stargazers`, true);
             break;
           case 'issues':
-            openUrl('https://github.com/NapNeko/NapCatQQ/issues', true);
+            openUrl(`${PROJECT_GITHUB_URL}/issues`, true);
             break;
           case 'pull_requests':
-            openUrl('https://github.com/NapNeko/NapCatQQ/pulls', true);
+            openUrl(`${PROJECT_GITHUB_URL}/pulls`, true);
             break;
           default:
-            openUrl('https://github.com/NapNeko/NapCatQQ', true);
+            openUrl(PROJECT_GITHUB_URL, true);
         }
       }}
     >
