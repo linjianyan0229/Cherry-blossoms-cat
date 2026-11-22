@@ -323,15 +323,22 @@ jobs:
           metadata="Cherry-blossoms-cat-Docker-image-${RELEASE_VERSION}.json"
           docker save "$IMAGE:$RELEASE_VERSION" | gzip -n > "docker-release/$archive"
           image_id=$(docker image inspect --format '{{.Id}}' "$IMAGE:$RELEASE_VERSION")
+          # Engine IDs can differ between containerd and legacy image stores.
+          # The saved config's actual content digest is portable across stores.
+          config_digest=$(node docker/archive-config-digest.cjs "docker-release/$archive")
+          [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$config_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ -z "$REGISTRY_DIGEST" || "$REGISTRY_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           jq -n --arg image "$IMAGE" --arg version "$RELEASE_VERSION" \
-            --arg imageId "$image_id" --arg digest "$REGISTRY_DIGEST" \
+            --arg imageId "$image_id" --arg configDigest "$config_digest" --arg digest "$REGISTRY_DIGEST" \
             --arg revision "$GITHUB_SHA" --arg repository "$GITHUB_REPOSITORY" \
             --slurpfile qq docker/qq-client.json \
             '{image: $image, version: $version, platform: "linux/amd64",
-              imageId: $imageId, registryDigest: (if $digest == "" then null else $digest end),
+              imageId: $imageId, imageIdKind: "builder-engine", configDigest: $configDigest,
+              registryDigest: (if $digest == "" then null else $digest end),
               published: ($digest != ""), sourceRepository: $repository,
               sourceRevision: $revision, qq: $qq[0]}' > "docker-release/$metadata"
-          cp docker/compose.yml docker/update.sh DOCKER.md docker/qq-client.json docker/QQ-SOURCE.md docker-release/deploy/
+          cp docker/compose.yml docker/update.sh docker/archive-config-digest.cjs DOCKER.md docker/qq-client.json docker/QQ-SOURCE.md docker-release/deploy/
           cp "docker-release/$metadata" docker-release/deploy/image.json
           chmod +x docker-release/deploy/update.sh
           printf 'CHERRY_IMAGE=%s:%s\nCHERRY_QQ_VERSION=%s\nCOMPOSE_PROJECT_NAME=cherry-cat-preview\nCHERRY_WEBUI_PORT=6099\n' \

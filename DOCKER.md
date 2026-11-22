@@ -53,7 +53,15 @@ docker load --input Cherry-blossoms-cat-Docker-linux-amd64-0.0.2-rc.1.tar.gz
 docker compose up -d --pull never cherry
 ```
 
-上面的文件名是命名示例，实际以下载的 Release 文件名为准。离线 tar 保存版本标签，`latest` 仍是线上可变标签。`image.json` 区分 Docker 本地 image ID 与 GHCR registry digest；手动工作流的离线包没有 registry digest。
+上面的文件名是命名示例，实际以下载的 Release 文件名为准。离线 tar 保存版本标签，`latest` 仍是线上可变标签。`image.json` 中的 `imageId` 是构建机 Docker 引擎报告的 ID，`imageIdKind=builder-engine`；containerd 与 legacy image store 对同一归档可能报告不同 ID，不能拿它直接核对跨 store 的离线加载结果。`configDigest` 则是归档 `manifest.json` 的 Config 所指文件原始字节的 SHA-256，可用于跨 store 核对镜像配置身份。`registryDigest` 仍用于 GHCR 拉取身份，手动工作流的离线包中该项为 `null`。
+
+部署包包含只读取归档的 `archive-config-digest.cjs`。在提供系统 Node.js 和 tar 的环境中，可按实际离线文件名执行：
+
+```bash
+node ./archive-config-digest.cjs ../Cherry-blossoms-cat-Docker-linux-amd64-0.0.2-rc.1.tar.gz
+```
+
+输出应与 `image.json` 的 `configDigest` 一致。读取器仅接受 `64位hash.json` 或 `blobs/sha256/64位hash` 配置路径，并核对路径摘要与真实文件 SHA-256；不解包到文件系统、不加载镜像或启动应用。该配置摘要与 `DOCKER-SHA256SUMS.txt` 的完整归档校验共同使用。
 
 ## 维护与来源
 
