@@ -94,10 +94,15 @@ jobs:
           for target in shell framework; do
             package_dir="packages/napcat-${target}/dist"
             cp LICENSE README.md MAINTAINING.md TESTING.md CONTRIBUTING.md "$package_dir/"
+            cp LINUX_QQ_MAINTENANCE.md "$package_dir/"
+            mkdir -p "$package_dir/compatibility"
+            cp compatibility/linux-qq.json "$package_dir/compatibility/linux-qq.json"
             while IFS= read -r -d '' license; do
               install -D "$license" "$package_dir/licenses/$license"
             done < <(find packages -type d \( -name node_modules -o -name dist \) -prune -o -type f \( -iname 'LICENSE' -o -iname 'LICENSE.*' -o -iname 'COPYING' \) -print0)
           done
+
+          chmod +x packages/napcat-shell/dist/launcher-linux.sh
 
       - name: 准备发行 ZIP 与校验文件
         shell: bash
