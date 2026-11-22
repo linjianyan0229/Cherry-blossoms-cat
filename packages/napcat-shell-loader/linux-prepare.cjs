@@ -209,7 +209,7 @@ function prepare (p) {
     fs.chmodSync(config, 0o600);
   }
   console.error(`已准备 QQ ${p.meta.version}，Build ${p.meta.build}，${process.arch}；核心将由 QQ 定制 Electron 运行。`);
-  if (process.arch !== 'x64' || p.meta.version !== '3.2.34-53644') console.error('该 QQ 版本或架构尚未在本项目完成真实启动验证，请按 LINUX.md 检查兼容性。');
+  if (process.arch !== 'x64' || p.meta.version !== '3.2.34-53644') console.error('该 QQ 版本或架构尚未纳入已登录验证的稳定基线，请按 LINUX.md 核对验证级别和原生偏移。');
   process.stdout.write(p.data + '\n');
 }
 function restore (p) {

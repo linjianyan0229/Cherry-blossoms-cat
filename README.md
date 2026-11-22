@@ -43,7 +43,7 @@ GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发�
 
 Cherry-blossoms-cat 发行版本 `0.0.1` 与 QQ/NTQQ 客户端的版本号是两套独立版本。客户端更新后，应依据完整 QQ 版本、Build、操作系统和架构检查版本参数、`wrapper.node` 接口与 native hook 适配，不能仅凭 TypeScript 构建成功认定客户端兼容。详细维护要点见 [MAINTAINING.md](MAINTAINING.md)。
 
-Linux 维护清单记录在 [compatibility/linux-qq.json](compatibility/linux-qq.json)。`3.2.34-53644` x64 已完成隔离环境中的扫码登录和核心在线验证；arm64 只核对了映射。官网当前包为 `3.2.35-54395`，本分支正在进行单独适配验证；AppID 和启动验证均不能代替原生发包偏移及消息功能验证。实际验证级别以维护清单为准，流程见 [Linux QQ 版本维护](LINUX_QQ_MAINTENANCE.md)。
+Linux 维护清单记录在 [compatibility/linux-qq.json](compatibility/linux-qq.json)。`3.2.34-53644` x64 已完成隔离环境中的扫码登录和核心在线验证；arm64 只核对了映射。官网当前包 `3.2.35-54395` x64 已登记 AppID，并通过新启动器的无登录启动检查；其原生发包偏移仍缺失，暂不作为完整兼容版本。实际验证级别以维护清单为准，流程见 [Linux QQ 版本维护](LINUX_QQ_MAINTENANCE.md)。
 
 ## 开发和提交
 
