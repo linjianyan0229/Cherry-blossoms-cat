@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "checked_date": "2026-11-22",
+  "qq_version": "3.2.35-54395",
+  "platform": "linux.x64",
+  "status": "statically-matched-hooks-initialized-moe-callbacks-verified",
+  "package": {
+    "filename": "QQ_3.2.35_261103_amd64_01.deb",
+    "source_url": "https://qqdl.gtimg.cn/qqfile/qqntv2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",
+    "website_url_with_directory_case_error": "https://qqdl.gtimg.cn/qqfile/QQNTV2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",
+    "downloaded_at_utc": "2026-11-22T03:56:58Z",
+    "source_normalization": "Only QQNTV2 directory case was changed to qqntv2; host, release directory and filename were retained.",
+    "size_bytes": 188287504,
+    "sha256": "7de03862327abbd16da27130413698c9517782b27194afc593bc3abf9b55f9ac"
+  },
+  "binaries": {
+    "old_wrapper": {
+      "qq_version": "3.2.34-53644",
+      "version_evidence": "Old QQ resources/app/package.json reports version 3.2.34-53644, buildVersion 53644, platform linux, eleArch x64.",
+      "filename": "wrapper.node",
+      "size_bytes": 152017008,
+      "sha256": "236ff3ebf29310c75a41394d80db4587411d43d66208c2a7d58b160d7b7b213b"
+    },
+    "new_wrapper": {
+      "filename": "wrapper.node",
+      "size_bytes": 152431496,
+      "sha256": "dc5209e20002735e31a20c9cded0a807d1db4779277dec66c9221ea28a870328"
+    },
+    "moehoo": {
+      "filename": "MoeHoo.linux.x64.node",
+      "size_bytes": 114888,
+      "sha256": "7caf9629c2ae8f25aa636bd0940c0d430bb30264617b9a6531800586d015b534"
+    },
+    "napi2native": {
+      "filename": "napi2native.linux.x64.node",
+      "size_bytes": 23233912,
+      "sha256": "42dcb6b65c2f8b065dc5a3b5b7ae906eec08c21142433c96636f68fb2c1fedfb"
+    }
+  },
+  "address_semantics": {
+    "moehoo": {
+      "native_function": "InitHook(napi_env__*, napi_callback_info__*)",
+      "hex_parse_call_rvas": [
+        "0x3641",
+        "0x3707"
+      ],
+      "recv_shr_instruction_rva": "0x3745",
+      "send_shr_instruction_rva": "0x3748",
+      "formula": "wrapper.node dlpi_addr + (strtoull(hex, 16) >> 1)",
+      "base_lookup": "getRva2Addr uses dl_iterate_phdr and matches wrapper.node in dlpi_name",
+      "o3_mode": "Fourth argument is read into a global flag after target calculation; it neither changes address decoding nor enables offset scanning.",
+      "hook_engine": "funchook_prepare and funchook_install"
+    },
+    "napi2native": {
+      "native_function": "HookManager::Init NAPI callback",
+      "hex_parse_call_rvas": [
+        "0x24a488",
+        "0x24a4c7"
+      ],
+      "formula": "wrapper.node dlpi_addr + strtoull(hex, 16)",
+      "send_call_rva": "0x24a535",
+      "recv_call_rva": "0x24a541",
+      "hook_engine": "Frida Gum interceptor"
+    }
+  },
+  "targets": [
+    {
+      "name": "moehoo_send",
+      "old_real_rva": "0x65F92D0",
+      "old_table_value": "CBF25A0",
+      "new_real_rva": "0x665CC80",
+      "candidate_table_value": "CCB9900",
+      "old_and_new_exact_fde_start": true,
+      "fde_length_bytes": 1237,
+      "instruction_count": 299,
+      "old_prefix_matches": 1,
+      "new_prefix_matches": 1,
+      "new_exact_normalized_function_matches": 1,
+      "old_and_new_normalized_sha256": "7fcce6de18e5b1101c4f860b4a63d4c05e77401cf67254075021e9db234e180b",
+      "semantic_references": [
+        "MSF-NG",
+        "task_manager.cc",
+        "InternalPushTask",
+        "MSF task pushed seq:{} uin:{} uin_type:{} cmd:{} data_size:{} custom_sig:{}"
+      ]
+    },
+    {
+      "name": "moehoo_recv",
+      "old_real_rva": "0x65FB070",
+      "old_table_value": "CBF60E0",
+      "new_real_rva": "0x665EA20",
+      "candidate_table_value": "CCBD440",
+      "old_and_new_exact_fde_start": true,
+      "fde_length_bytes": 1804,
+      "instruction_count": 432,
+      "old_prefix_matches": 1,
+      "new_prefix_matches": 1,
+      "new_exact_normalized_function_matches": 1,
+      "old_and_new_normalized_sha256": "c4ff22f98a91093f5a240500584ed558b6b83abfa9bce7a79869fe54373624aa",
+      "semantic_references": [
+        "MSF-NG",
+        "task_manager.cc",
+        "DidRecvResponseData",
+        "MSF recv seq:{} cmd:{} data_size:{}, error_code:{}"
+      ]
+    },
+    {
+      "name": "napi2native_send",
+      "old_real_rva": "0x6E5AB20",
+      "old_table_value": "6E5AB20",
+      "new_real_rva": "0x6EBE4D0",
+      "candidate_table_value": "6EBE4D0",
+      "old_and_new_exact_fde_start": true,
+      "fde_length_bytes": 238,
+      "instruction_count": 63,
+      "old_prefix_matches": 1,
+      "new_prefix_matches": 1,
+      "new_exact_normalized_function_matches": 1,
+      "old_and_new_normalized_sha256": "fb7cb02b97c0cc7470a39a7402ff4637985fb7b0f9b869c88dc6cff41dfe771a",
+      "semantic_references": [
+        "NAPI value to 24-byte InternalString conversion",
+        "napi_typeof",
+        "napi_get_value_int32",
+        "napi_coerce_to_string"
+      ]
+    },
+    {
+      "name": "napi2native_recv",
+      "old_real_rva": "0x3A12CD0",
+      "old_table_value": "3A12CD0",
+      "new_real_rva": "0x3A49520",
+      "candidate_table_value": "3A49520",
+      "old_and_new_exact_fde_start": true,
+      "fde_length_bytes": 470,
+      "instruction_count": 113,
+      "old_prefix_matches": 108,
+      "new_prefix_matches": 108,
+      "new_exact_normalized_function_matches": 1,
+      "old_and_new_normalized_sha256": "2c8ad04a5ee16e84a30ef8227700690a2ec08762aff83ac07ea0d2505f12367d",
+      "semantic_references": [
+        "NodeISendSsoCmdReqCallback.cpp",
+        "operator()",
+        "result",
+        "errMsg",
+        "rsp"
+      ]
+    }
+  ],
+  "normalization": {
+    "preserved": [
+      "instruction offsets",
+      "registers",
+      "member offsets",
+      "local branch destinations",
+      "PLT call symbols",
+      "rodata string values and reference offsets"
+    ],
+    "removed": [
+      "RIP-relative displacement values",
+      "unknown external relative call addresses"
+    ],
+    "limitation": "This establishes target correspondence, not a proof of every external callee or successful runtime packet traffic."
+  },
+  "initial_runtime_fixture": {
+    "status": "invalid-double-native-registration-fixture",
+    "candidate_init_hook_reached": false,
+    "failure": "SIGSEGV SEGV_ACCERR during a second process.dlopen/NAPI registration of MoeHoo",
+    "core_evidence": {
+      "fault_rip_equals_orig_write": true,
+      "orig_write_and_orig_writev_target_pt_load_flags": 6,
+      "target_page_permissions": "read/write, not executable",
+      "stack_return_rvas": [
+        "0x275b (hook_write)",
+        "0x2d56 (init puts)"
+      ],
+      "tsfn": "0x0",
+      "o_send_func": "0x0",
+      "o_recv_func": "0x0"
+    },
+    "native_registration_sequence": "overwrite original write pointers; funchook_prepare; puts; funchook_install",
+    "conclusion": "Second registration invokes the already installed write hook after its original pointer has been replaced by a newly prepared, still non-executable trampoline. This failure does not validate or invalidate candidate QQ offsets.",
+    "required_next_validation": "Use a fresh no-login container and the normal Shell first native load; do not call process.dlopen for MoeHoo a second time."
+  },
+  "early_napi_runtime_probe": {
+    "status": "failed-before-wrapper-loaded",
+    "module_loads": {
+      "moe": 1,
+      "napi": 1
+    },
+    "fixture": "Called the retained Napi initHook synchronously inside the process.dlopen wrapper immediately after the first module load returned.",
+    "source_order": "NCoreInitShell constructs both native loaders before calling loadQQWrapper.",
+    "native_precondition": "HookManager init_send_hook and init_recv_hook obtain wrapper.node dlpi_addr and do not reject an absent zero base before adding the requested RVA.",
+    "failure": "SIGSEGV with the first-load immediate probe; no core was retained.",
+    "conclusion": "Do not initialize packet hooks as part of loading the native addon. Preserve the normal wrapper-before-hook order."
+  },
+  "successful_runtime_verification": {
+    "session_state": "unauthenticated, waiting_qrcode",
+    "observed_at_utc": "2026-11-22T04:23:18.63Z",
+    "first_native_load_only": true,
+    "module_loads": {
+      "moe": 1,
+      "napi": 1
+    },
+    "moehoo_init": {
+      "send": "CCB9900",
+      "recv": "CCBD440",
+      "result": "success"
+    },
+    "napi2native_init": {
+      "send": "6EBE4D0",
+      "recv": "3A49520",
+      "result": true
+    },
+    "moehoo_send_callbacks_observed": 64,
+    "moehoo_recv_callbacks_observed": 63,
+    "invalid_hex_payloads_observed": 0,
+    "command_examples": [
+      "Heartbeat.Alive",
+      "Client.CorrectTime",
+      "wtlogin.trans_emp",
+      "trpc.o3.report.Report.SsoReport"
+    ],
+    "napi_probe_order": "Preserved exports from its first native load, then initialized after normal wrapper and engine startup; the diagnostic fixture used a 10-second delay.",
+    "production_initialization_order": "Load addons once, load wrapper.node, and initialize packet hooks at their existing lifecycle stages. Keep Napi initialization in the normal PacketApi initialization flow; a fixed timer is not a production readiness rule.",
+    "limits": [
+      "Napi hook installation returned true; an authenticated custom Buffer request/response roundtrip was not exercised.",
+      "Moe callbacks verify real login-handshake traffic, not every packet feature.",
+      "This verification does not claim anti-detection effectiveness."
+    ]
+  },
+  "review_files": [
+    "scripts/review-linux-native-offsets.cjs"
+  ],
+  "execution_rule": "Run project analysis scripts only inside the maintainer-designated remote disposable isolated container. Never dynamically load a native module for static review."
+}
