@@ -33,9 +33,17 @@ GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发�
 
 本仓库发布的是核心运行包，不包含 QQ 客户端。运行时需要匹配环境提供的 QQ 文件及原生模块。
 
+### Linux 启动入口
+
+本维护分支新增 `launcher-linux.sh`，使用 Linux QQ 自身的定制 Electron 运行核心，并在专用工作目录准备完整 QQ 副本。它支持显式 QQ 数据目录、Xvfb、仅准备文件和恢复入口。使用方法见 [Linux 启动说明](packages/napcat-shell-loader/LINUX.md)，构建包中也包含 `LINUX.md`。系统 Node.js 20+ 只负责文件准备。
+
+新启动器将随后续 Shell 构建包分发；已有的 `0.0.1` 发行附件不含这个入口。运行验证仍须遵守 [TESTING.md](TESTING.md)。
+
 ## QQ/NTQQ 版本兼容
 
 Cherry-blossoms-cat 发行版本 `0.0.1` 与 QQ/NTQQ 客户端的版本号是两套独立版本。客户端更新后，应依据完整 QQ 版本、Build、操作系统和架构检查版本参数、`wrapper.node` 接口与 native hook 适配，不能仅凭 TypeScript 构建成功认定客户端兼容。详细维护要点见 [MAINTAINING.md](MAINTAINING.md)。
+
+Linux 维护清单记录在 [compatibility/linux-qq.json](compatibility/linux-qq.json)。`3.2.34-53644` x64 已完成隔离环境中的扫码登录和核心在线验证；arm64 只核对了映射。官网当前包为 `3.2.35-54395`，本分支正在进行单独适配验证；AppID 和启动验证均不能代替原生发包偏移及消息功能验证。实际验证级别以维护清单为准，流程见 [Linux QQ 版本维护](LINUX_QQ_MAINTENANCE.md)。
 
 ## 开发和提交
 
