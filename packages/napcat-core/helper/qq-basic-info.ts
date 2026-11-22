@@ -21,6 +21,19 @@ function parseQQBuild (build: string | undefined, label: string): number {
   return value;
 }
 
+export function formatQUAFallback (platform: NodeJS.Platform, fullVersion: string, build: string | undefined): string {
+  if (platform === 'linux') {
+    const version = fullVersion.match(/^(\d+\.\d+\.\d+)(?:[-.]\d+)?$/)?.[1];
+    if (!version) throw new Error(`Linux QQ版本格式无效: ${fullVersion}`);
+    return `V1_LNX_NQ_${version}_${parseQQBuild(build, 'QQ当前构建号')}_GW_B`;
+  }
+  const platformMapping: Partial<Record<NodeJS.Platform, string>> = {
+    win32: `V1_WIN_${fullVersion}_${build}_GW_B`,
+    darwin: `V1_MAC_${fullVersion}_${build}_GW_B`,
+  };
+  return platformMapping[platform] ?? platformMapping.win32!;
+}
+
 export class QQBasicInfoWrapper {
   QQMainPath: string | undefined;
   QQPackageInfoPath: string | undefined;
@@ -77,18 +90,7 @@ export class QQBasicInfoWrapper {
 
   // 此方法不要直接使用
   getQUAFallback () {
-    const fullVersion = this.getFullQQVersion();
-    const build = this.getQQBuildStr();
-    if (systemPlatform === 'linux') {
-      const version = fullVersion.match(/^(\d+\.\d+\.\d+)(?:[-.]\d+)?$/)?.[1];
-      if (!version) throw new Error(`Linux QQ版本格式无效: ${fullVersion}`);
-      return `V1_LNX_NQ_${version}_${parseQQBuild(build, 'QQ当前构建号')}_GW_B`;
-    }
-    const platformMapping: Partial<Record<NodeJS.Platform, string>> = {
-      win32: `V1_WIN_${fullVersion}_${build}_GW_B`,
-      darwin: `V1_MAC_${fullVersion}_${build}_GW_B`,
-    };
-    return platformMapping[systemPlatform] ?? (platformMapping.win32)!;
+    return formatQUAFallback(systemPlatform, this.getFullQQVersion(), this.getQQBuildStr());
   }
 
   getAppIdFallback () {
