@@ -47,15 +47,16 @@ export const UpdateNapCatHandler: RequestHandler = async (req, res) => {
     if (remaining.length) writePendingUpdate(webUiPathWrapper, { ...update, files: remaining });
     else { fs.unlinkSync(pendingUpdatePath(webUiPathWrapper)); removeUpdateStage(webUiPathWrapper, update.stageName); }
     sendSuccess(res, {
-      status: 'completed', newVersion: release.version, failedFilesCount: remaining.length,
+      status: 'completed',
+      newVersion: release.version,
+      failedFilesCount: remaining.length,
       message: remaining.length
         ? `发行包已校验，请手动重启以应用剩余 ${remaining.length} 个文件${remaining.some(file => file.relativePath === 'napcat.mjs') ? '；核心入口在启动后替换，可能还需再次手动重启才能载入新核心' : ''}`
         : '发行包已校验并替换，请手动重启应用',
     });
   } catch (error) {
     if (staged && !registered) {
-      try { removeUpdateStage(webUiPathWrapper, staged.stageName); }
-      catch (cleanupError) { webUiLogger?.logError('[Project Update] 无法清理本次临时目录：', cleanupError); }
+      try { removeUpdateStage(webUiPathWrapper, staged.stageName); } catch (cleanupError) { webUiLogger?.logError('[Project Update] 无法清理本次临时目录：', cleanupError); }
     }
     webUiLogger?.logError('[Project Update] 更新失败：', error);
     sendError(res, error instanceof Error ? error.message : '项目更新失败');

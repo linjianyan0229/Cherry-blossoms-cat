@@ -50,7 +50,8 @@ export function normalizeProjectRelease (raw: unknown): ProjectRelease | null {
     if (!record(asset) || typeof asset['name'] !== 'string' || typeof asset['browser_download_url'] !== 'string') return null;
     const name = asset['name'];
     const size = asset['size'];
-    if (!name || /[\\/\u0000-\u001f\u007f]/.test(name) || names.has(name) ||
+    const hasControlCharacter = [...name].some(character => character.charCodeAt(0) < 0x20 || character.charCodeAt(0) === 0x7f);
+    if (!name || /[\\/]/.test(name) || hasControlCharacter || names.has(name) ||
         typeof size !== 'number' || !Number.isSafeInteger(size) || size <= 0 ||
         !isProjectReleaseAssetUrl(asset['browser_download_url'], raw['tag_name'], name)) return null;
     names.add(name);

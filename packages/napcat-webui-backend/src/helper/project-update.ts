@@ -94,20 +94,29 @@ export async function downloadProjectAsset (asset: ProjectReleaseAsset, tag: str
   if (length !== undefined && (!/^\d+$/.test(length) || Number(length) !== asset.size)) { response.destroy(); throw new Error('发行资产响应长度与 GitHub 记录不一致'); }
   const hash = createHash('sha256');
   let received = 0;
-  const verify = new Transform({ transform (chunk: Buffer, _encoding, callback) {
-    received += chunk.length;
-    if (received > asset.size) { callback(new Error('发行资产超过声明大小')); return; }
-    hash.update(chunk); callback(null, chunk);
-  } });
-  const writer = fs.createWriteStream(destination, { flags: 'wx', mode: 0o600 });
-  let created = false;
-  writer.once('open', () => { created = true; });
+  const verify = new Transform({
+    transform (chunk: Buffer, _encoding, callback) {
+      received += chunk.length;
+      if (received > asset.size) { callback(new Error('发行资产超过声明大小')); return; }
+      hash.update(chunk); callback(null, chunk);
+    }
+  });
+  // Acquire the new file synchronously. An asynchronous open could otherwise
+  // finish after pipeline rejection and leave an untracked partial download.
+  let fd: number;
+  try { fd = fs.openSync(destination, 'wx', 0o600); } catch (error) { response.destroy(); throw error; }
+  let writer: fs.WriteStream;
+  try { writer = fs.createWriteStream(destination, { fd, autoClose: true, emitClose: true }); } catch (error) { response.destroy(); fs.closeSync(fd); fs.unlinkSync(destination); throw error; }
+  const closed = new Promise<void>((resolve) => { writer.once('close', resolve); });
   try {
     await pipeline(response, verify, writer);
+    await closed;
     if (received !== asset.size) throw new Error('发行资产下载不完整');
     return hash.digest('hex');
   } catch (error) {
-    if (created && fs.existsSync(destination) && fs.lstatSync(destination).isFile()) fs.unlinkSync(destination);
+    writer.destroy();
+    await closed;
+    if (fs.existsSync(destination) && fs.lstatSync(destination).isFile()) fs.unlinkSync(destination);
     throw error;
   }
 }
@@ -187,8 +196,7 @@ function digestFile (file: string): string {
   const hash = createHash('sha256');
   const fd = fs.openSync(file, 'r');
   const buffer = Buffer.alloc(64 * 1024);
-  try { let count: number; while ((count = fs.readSync(fd, buffer, 0, buffer.length, null))) hash.update(buffer.subarray(0, count)); }
-  finally { fs.closeSync(fd); }
+  try { let count: number; while ((count = fs.readSync(fd, buffer, 0, buffer.length, null))) hash.update(buffer.subarray(0, count)); } finally { fs.closeSync(fd); }
   return hash.digest('hex');
 }
 
@@ -268,8 +276,7 @@ function assertNoLinksBetween (root: string, target: string): void {
   let current = root;
   for (const piece of relative.split(path.sep)) {
     current = path.join(current, piece);
-    try { if (fs.lstatSync(current).isSymbolicLink()) throw new Error('更新路径包含符号链接'); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+    try { if (fs.lstatSync(current).isSymbolicLink()) throw new Error('更新路径包含符号链接'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   }
 }
 
@@ -331,8 +338,7 @@ export function applyVerifiedUpdate (paths: UpdatePaths, update: ProjectPendingU
       if (digestFile(temporary) !== file.sha256) throw new Error('替换副本内容校验失败');
       fs.renameSync(temporary, target);
       temporary = undefined;
-    } catch (error) { remaining.push(file); onFailure?.(file.relativePath, error); }
-    finally { if (temporary && fs.existsSync(temporary) && fs.lstatSync(temporary).isFile()) fs.unlinkSync(temporary); }
+    } catch (error) { remaining.push(file); onFailure?.(file.relativePath, error); } finally { if (temporary && fs.existsSync(temporary) && fs.lstatSync(temporary).isFile()) fs.unlinkSync(temporary); }
   }
   return remaining;
 }
@@ -342,6 +348,5 @@ export function pendingUpdatePath (paths: UpdatePaths): string { return path.joi
 export function writePendingUpdate (paths: UpdatePaths, update: ProjectPendingUpdate): void {
   const destination = pendingUpdatePath(paths);
   const temporary = path.join(paths.configPath, `.cherry-pending-${randomUUID()}`);
-  try { fs.writeFileSync(temporary, JSON.stringify(update, null, 2), { flag: 'wx', mode: 0o600 }); fs.renameSync(temporary, destination); }
-  finally { if (fs.existsSync(temporary) && fs.lstatSync(temporary).isFile()) fs.unlinkSync(temporary); }
+  try { fs.writeFileSync(temporary, JSON.stringify(update, null, 2), { flag: 'wx', mode: 0o600 }); fs.renameSync(temporary, destination); } finally { if (fs.existsSync(temporary) && fs.lstatSync(temporary).isFile()) fs.unlinkSync(temporary); }
 }

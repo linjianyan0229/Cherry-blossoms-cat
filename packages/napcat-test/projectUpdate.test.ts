@@ -24,9 +24,11 @@ const state = vi.hoisted(() => ({
   version: '0.0.2-rc.1',
 }));
 vi.mock('@/napcat-webui-backend/index', () => ({ webUiPathWrapper: state.paths, webUiLogger: { logError: vi.fn() } }));
-vi.mock('@/napcat-webui-backend/src/helper/Data', () => ({ WebUiDataRuntime: {
-  getWorkingEnv: () => state.environment, GetNapCatVersion: () => state.version,
-} }));
+vi.mock('@/napcat-webui-backend/src/helper/Data', () => ({
+  WebUiDataRuntime: {
+    getWorkingEnv: () => state.environment, GetNapCatVersion: () => state.version,
+  }
+}));
 const compressing = createRequire(new URL('../napcat-webui-backend/package.json', import.meta.url))('compressing') as {
   zip: { compressDir(source: string, destination: string, options: { ignoreBase: boolean; }): Promise<void>; };
 };
@@ -117,7 +119,8 @@ describe('本项目发行更新', () => {
     const names = [getProjectAssetName('Shell', state.version), getProjectAssetName('Framework', state.version)];
     const sums = `${hash(archive)}  ${names[0]}\n${hash(archive)}  ${names[1]}\n`;
     const assets: ProjectReleaseAsset[] = [...names, 'SHA256SUMS.txt'].map(name => ({
-      name, size: name === 'SHA256SUMS.txt' ? Buffer.byteLength(sums) : archive.length,
+      name,
+      size: name === 'SHA256SUMS.txt' ? Buffer.byteLength(sums) : archive.length,
       browser_download_url: `${PROJECT_GITHUB_URL}/releases/download/v${state.version}/${name}`,
     }));
     release = { tag_name: `v${state.version}`, version: state.version, prerelease: true, body: '', published_at: '2026-11-22T00:00:00Z', assets };
@@ -206,8 +209,7 @@ describe('本项目发行更新', () => {
   });
 
   const zipAvailable = (process.env['PATH'] || '').split(path.delimiter).some(directory => {
-    try { fs.accessSync(path.join(directory, 'zip'), fs.constants.X_OK); return fs.statSync(path.join(directory, 'zip')).isFile(); }
-    catch { return false; }
+    try { fs.accessSync(path.join(directory, 'zip'), fs.constants.X_OK); return fs.statSync(path.join(directory, 'zip')).isFile(); } catch { return false; }
   });
   it.skipIf(!zipAvailable)('接受发行 runner 的实际 zip -q -r . 布局（需要现有 zip 工具）', () => {
     const zip = path.join(fixture, 'release-runner.zip');
@@ -231,6 +233,15 @@ describe('本项目发行更新', () => {
     expect(get).not.toHaveBeenCalled();
     await expect(updates.downloadProjectAsset(asset, release.tag_name, path.join(fixture, 'redirect.zip'))).rejects.toThrow('范围');
     expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it('下载目标已存在时独占创建失败，不删除或覆盖已有文件', async () => {
+    const asset = { ...release.assets[0]!, size: 3 };
+    mockHttps([{ body: Buffer.from('abc') }]);
+    const destination = path.join(fixture, 'existing.zip');
+    fs.writeFileSync(destination, 'existing');
+    await expect(updates.downloadProjectAsset(asset, release.tag_name, destination)).rejects.toThrow();
+    expect(fs.readFileSync(destination, 'utf8')).toBe('existing');
   });
 
   it('下载重定向最多5跳，声明大小不符或流错误会清理新文件', async () => {
@@ -351,12 +362,12 @@ describe('本项目发行更新', () => {
   });
 
   it('并发请求不能共享下载 staging', async () => {
-    let resolve!: (value: ProjectRelease) => void;
-    vi.spyOn(projectRelease, 'getProjectRelease').mockImplementation(() => new Promise(done => { resolve = done; }));
+    let resolveRelease!: (value: ProjectRelease) => void;
+    vi.spyOn(projectRelease, 'getProjectRelease').mockImplementation(() => new Promise((resolve) => { resolveRelease = resolve; }));
     vi.spyOn(updates, 'stageProjectUpdate').mockRejectedValue(new Error('fixture stops before download'));
     const first = invoke({});
     const second = await invoke({});
     expect(second.message).toContain('进行中');
-    resolve(release); await first;
+    resolveRelease(release); await first;
   });
 });

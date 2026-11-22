@@ -12,7 +12,7 @@ import path from 'path';
 export const GetNapCatVersion: RequestHandler = (_, res) => {
   sendSuccess(res, {
     version: WebUiDataRuntime.GetNapCatVersion(),
-    updateMode: process.env.NAPCAT_IMAGE_MANAGED === '1' || !!process.env.IMAGE_QQ_VERSION ? 'image' : 'files',
+    updateMode: process.env['NAPCAT_IMAGE_MANAGED'] === '1' || !!process.env['IMAGE_QQ_VERSION'] ? 'image' : 'files',
     repository: PROJECT_REPOSITORY,
     releaseUrl: PROJECT_RELEASES_URL,
   });
