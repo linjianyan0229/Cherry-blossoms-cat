@@ -8,7 +8,7 @@ Do not install project dependencies or run project tests/builds on the developer
 
 ## Authorized GitHub release builds
 
-The maintainer explicitly authorized GitHub Actions to install build dependencies, compile WebUI/Shell/Framework and the built-in plugin, package runtime dependencies, and publish release artifacts. This exception is limited to `.github/workflows/release-package.yml`. It must not run type checking, tests, QQ/NapCat sessions, or application startup. `.github/workflows/commit-format.yml` may read PR commit metadata only; it does not execute PR project code.
+The maintainer explicitly authorized GitHub Actions to install build dependencies, compile WebUI/Shell/Framework and the built-in plugin, package runtime dependencies, and publish release artifacts. On 2026-11-22 the maintainer also authorized Docker automatic build/update packages. This exception is limited to `.github/workflows/release-package.yml`: it may assemble a Linux amd64 image from the same Shell artifact and a hash-pinned official QQ package, install image system dependencies, export the offline image/deployment package, and publish version-tag releases to GHCR. A manual branch build produces reviewable artifacts; only a version-tag run publishes the image and Release. It must not run type checking, tests, QQ/NapCat sessions, or application startup. `.github/workflows/commit-format.yml` may read PR commit metadata only; it does not execute PR project code.
 
 ## Isolation requirements
 

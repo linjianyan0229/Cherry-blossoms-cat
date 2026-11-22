@@ -9,7 +9,7 @@ on:
       version:
         description: 内测包版本号
         required: true
-        default: 0.0.1
+        default: 0.0.2-rc.1
         type: string
 
 permissions:
@@ -23,6 +23,8 @@ jobs:
   build-and-package:
     name: 构建 Shell 和 Framework
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release-version.outputs.version }}
     steps:
       - name: 获取源码
         uses: actions/checkout@v5
@@ -40,6 +42,7 @@ jobs:
           cache: pnpm
 
       - name: 确认发行版本
+        id: release-version
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -57,6 +60,7 @@ jobs:
             exit 1
           fi
           echo "NAPCAT_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "发行版本：${VERSION}"
 
       - name: 安装锁定的工作区依赖
@@ -93,10 +97,16 @@ jobs:
           set -euo pipefail
           for target in shell framework; do
             package_dir="packages/napcat-${target}/dist"
-            cp LICENSE README.md MAINTAINING.md TESTING.md CONTRIBUTING.md "$package_dir/"
+            cp LICENSE README.md MAINTAINING.md TESTING.md CONTRIBUTING.md DOCKER.md "$package_dir/"
             cp LINUX_QQ_MAINTENANCE.md "$package_dir/"
+            plugin_dir="$package_dir/plugins/napcat-plugin-builtin"
+            mkdir -p "$plugin_dir"
+            cp packages/napcat-plugin-builtin/dist/index.mjs packages/napcat-plugin-builtin/package.json "$plugin_dir/"
+            cp -R packages/napcat-plugin-builtin/webui "$plugin_dir/"
             mkdir -p "$package_dir/compatibility"
             cp compatibility/linux-qq.json "$package_dir/compatibility/linux-qq.json"
+            mkdir -p "$package_dir/compatibility/evidence"
+            cp compatibility/evidence/linux-qq-54395-native.json "$package_dir/compatibility/evidence/"
             while IFS= read -r -d '' license; do
               install -D "$license" "$package_dir/licenses/$license"
             done < <(find packages -type d \( -name node_modules -o -name dist \) -prune -o -type f \( -iname 'LICENSE' -o -iname 'LICENSE.*' -o -iname 'COPYING' \) -print0)
@@ -160,6 +170,196 @@ jobs:
             Cherry-blossoms-cat-*.zip
             SHA256SUMS.txt
           body: |
-            Cherry-blossoms-cat 内测版本。此工作流仅构建并打包 Shell 和 Framework，不运行项目测试。
+            Cherry-blossoms-cat 内测版本。此工作流仅构建并打包 Shell、Framework 和 Linux amd64 Docker 发行包，不运行项目测试或启动 QQ。
 
             所有项目测试仅在维护者指定的隔离服务器上运行；请先核对相应 QQ/NTQQ 版本兼容性。
+
+            本轮 Docker 为 QQ 3.2.35-54395 新版预览：正常 engine 启动后 napi 首次初始化返回 true，packet 在同进程中持续产生双向协议包回调。尚未完成新 QQ 登录、用户消息收发或反检测效果验证；协议包回调不能证明用户消息收发成功。QQ 3.2.34-53644 保留为历史已登录验证基线。
+
+            Docker job 成功后追加离线镜像、部署 ZIP 和来源/校验文件。部署 .env 锁定本发行的完整版本，默认 cherry-cat-preview 项目及全新 profile；更新需修改目标版本后执行 update.sh，不更动既有已登录实例。
+
+            GHCR latest 代表最近成功发布的内测构建，旧标签重跑或不同标签并发可改变它，不保证最高语义版本。镜像不自动跟进 QQ；个人部署请使用完整版本或 registry digest。
+
+  build-docker:
+    name: 构建 Linux amd64 Docker 更新包
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docker-publish-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    env:
+      RELEASE_VERSION: ${{ needs.build-and-package.outputs.version }}
+    steps:
+      - name: 获取 Docker 发行配置
+        uses: actions/checkout@v5
+
+      - name: 下载同次 Shell 构建产物
+        uses: actions/download-artifact@v7
+        with:
+          name: Cherry-blossoms-cat-${{ needs.build-and-package.outputs.version }}-内测包
+          path: release-input
+
+      - name: 准备白名单构建目录与锁定 QQ 安装包
+        id: docker-input
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          QQ_VERSION=$(jq -er '.version' docker/qq-client.json)
+          QQ_ARCH=$(jq -er '.architecture' docker/qq-client.json)
+          QQ_URL=$(jq -er '.url' docker/qq-client.json)
+          QQ_SHA256=$(jq -er '.sha256' docker/qq-client.json)
+          QQ_BYTES=$(jq -er '.bytes' docker/qq-client.json)
+          QQ_VALIDATION=$(jq -er '.validation' docker/qq-client.json)
+          QQ_CHANNEL=$(jq -r '.releaseChannel // ""' docker/qq-client.json)
+          QQ_PACKET_VALIDATION=$(jq -r '.nativePacketOffsets // ""' docker/qq-client.json)
+          QQ_NAPI_VALIDATION=$(jq -r '.napiHookOffsets // ""' docker/qq-client.json)
+          [[ "$QQ_ARCH" == amd64 ]]
+          [[ "$QQ_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]
+          [[ "$QQ_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$QQ_BYTES" =~ ^[1-9][0-9]*$ ]]
+          [[ "$QQ_URL" == https://qqdl.gtimg.cn/* ]]
+
+          # A client without login evidence is restricted to a preview release,
+          # and must have both real callback and native initialization evidence.
+          case "$QQ_VALIDATION" in
+            login-verified) ;;
+            startup-verified)
+              [[ "$RELEASE_VERSION" == *-* && "$QQ_CHANNEL" == preview ]]
+              [[ "$QQ_PACKET_VALIDATION" == callback-verified && "$QQ_NAPI_VALIDATION" == init-verified ]]
+              ;;
+            *) echo "不允许发行未验证的 QQ pin：$QQ_VALIDATION" >&2; exit 1 ;;
+          esac
+
+          # Read metadata only; pin and compatibility evidence must agree.
+          jq -e --arg version "$QQ_VERSION" --arg sha "$QQ_SHA256" \
+            --arg url "$QQ_URL" --argjson bytes "$QQ_BYTES" \
+            --arg validation "$QQ_VALIDATION" --arg packet "$QQ_PACKET_VALIDATION" --arg napi "$QQ_NAPI_VALIDATION" \
+            '.clients[] | select(.version == $version and .arch == "x64") |
+             .validation == $validation and (.nativePacketOffsets // "") == $packet and
+             (.napiHookOffsets // "") == $napi and .package.sha256 == $sha and
+             .package.bytes == $bytes and .package.url == $url' compatibility/linux-qq.json >/dev/null
+          (cd release-input && sha256sum --check --strict SHA256SUMS.txt)
+
+          mkdir -p docker-context/shell docker-context/docker docker-context/qq
+          unzip -q "release-input/Cherry-blossoms-cat-Shell-${RELEASE_VERSION}.zip" -d docker-context/shell
+          cp Dockerfile docker-context/Dockerfile
+          cp docker/entrypoint.sh docker/qq-client.json docker/QQ-SOURCE.md docker-context/docker/
+          # Resume partial official downloads; every candidate still needs the
+          # exact committed size and full SHA-256 before it enters the image.
+          for attempt in 1 2 3 4 5 6 7 8; do
+            curl --fail --location --retry 2 --retry-all-errors --continue-at - \
+              --connect-timeout 30 --max-time 600 \
+              --proto '=https' --proto-redir '=https' --tlsv1.2 \
+              --output docker-context/qq/qq.deb "$QQ_URL" || true
+            if [[ -f docker-context/qq/qq.deb && "$(stat -c %s docker-context/qq/qq.deb)" == "$QQ_BYTES" ]]; then
+              break
+            fi
+            echo "官方包未完整下载，将从已有字节恢复（第 ${attempt} 次）。"
+          done
+          [[ "$(stat -c %s docker-context/qq/qq.deb)" == "$QQ_BYTES" ]]
+          printf '%s  docker-context/qq/qq.deb\n' "$QQ_SHA256" | sha256sum --check --strict
+          printf 'image=%s\nqq-version=%s\nqq-sha256=%s\nqq-bytes=%s\n' \
+            "$IMAGE" "$QQ_VERSION" "$QQ_SHA256" "$QQ_BYTES" >> "$GITHUB_OUTPUT"
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建已编译 Shell 的运行镜像（不启动应用）
+        uses: docker/build-push-action@v6
+        with:
+          context: docker-context
+          platforms: linux/amd64
+          load: true
+          push: false
+          provenance: false
+          tags: |
+            ${{ steps.docker-input.outputs.image }}:${{ env.RELEASE_VERSION }}
+            ${{ steps.docker-input.outputs.image }}:latest
+          build-args: |
+            QQ_DEB_SHA256=${{ steps.docker-input.outputs.qq-sha256 }}
+            QQ_DEB_BYTES=${{ steps.docker-input.outputs.qq-bytes }}
+            QQ_VERSION=${{ steps.docker-input.outputs.qq-version }}
+            RELEASE_VERSION=${{ env.RELEASE_VERSION }}
+            SOURCE_REPOSITORY=${{ github.server_url }}/${{ github.repository }}
+            SOURCE_REVISION=${{ github.sha }}
+
+      - name: 登录 GHCR（仅版本标签发行）
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 发布版本镜像与 latest（不运行容器）
+        id: publish-image
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          IMAGE: ${{ steps.docker-input.outputs.image }}
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:$RELEASE_VERSION" | tee image-push.log
+          DIGEST=$(sed -nE 's/^.*digest: (sha256:[0-9a-f]{64}) size:.*$/\1/p' image-push.log | tail -n 1)
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker push "$IMAGE:latest"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: 准备离线镜像、部署文件与来源校验
+        shell: bash
+        env:
+          IMAGE: ${{ steps.docker-input.outputs.image }}
+          QQ_VERSION: ${{ steps.docker-input.outputs.qq-version }}
+          REGISTRY_DIGEST: ${{ steps.publish-image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p docker-release/deploy
+          archive="Cherry-blossoms-cat-Docker-linux-amd64-${RELEASE_VERSION}.tar.gz"
+          deploy_zip="Cherry-blossoms-cat-Docker-deploy-${RELEASE_VERSION}.zip"
+          metadata="Cherry-blossoms-cat-Docker-image-${RELEASE_VERSION}.json"
+          docker save "$IMAGE:$RELEASE_VERSION" | gzip -n > "docker-release/$archive"
+          image_id=$(docker image inspect --format '{{.Id}}' "$IMAGE:$RELEASE_VERSION")
+          jq -n --arg image "$IMAGE" --arg version "$RELEASE_VERSION" \
+            --arg imageId "$image_id" --arg digest "$REGISTRY_DIGEST" \
+            --arg revision "$GITHUB_SHA" --arg repository "$GITHUB_REPOSITORY" \
+            --slurpfile qq docker/qq-client.json \
+            '{image: $image, version: $version, platform: "linux/amd64",
+              imageId: $imageId, registryDigest: (if $digest == "" then null else $digest end),
+              published: ($digest != ""), sourceRepository: $repository,
+              sourceRevision: $revision, qq: $qq[0]}' > "docker-release/$metadata"
+          cp docker/compose.yml docker/update.sh DOCKER.md docker/qq-client.json docker/QQ-SOURCE.md docker-release/deploy/
+          cp "docker-release/$metadata" docker-release/deploy/image.json
+          chmod +x docker-release/deploy/update.sh
+          printf 'CHERRY_IMAGE=%s:%s\nCHERRY_QQ_VERSION=%s\nCOMPOSE_PROJECT_NAME=cherry-cat-preview\nCHERRY_WEBUI_PORT=6099\n' \
+            "$IMAGE" "$RELEASE_VERSION" "$QQ_VERSION" > docker-release/deploy/.env
+          (cd docker-release/deploy && zip -q -r "../$deploy_zip" .)
+          (cd docker-release && sha256sum "$archive" "$deploy_zip" "$metadata" > DOCKER-SHA256SUMS.txt)
+
+      - name: 上传 Docker 构建产物
+        uses: actions/upload-artifact@v6
+        with:
+          name: Cherry-blossoms-cat-${{ env.RELEASE_VERSION }}-Docker-linux-amd64
+          path: |
+            docker-release/Cherry-blossoms-cat-Docker-*.tar.gz
+            docker-release/Cherry-blossoms-cat-Docker-*.zip
+            docker-release/Cherry-blossoms-cat-Docker-*.json
+            docker-release/DOCKER-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 将 Docker 更新包追加至同一内测 Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: |
+            docker-release/Cherry-blossoms-cat-Docker-*.tar.gz
+            docker-release/Cherry-blossoms-cat-Docker-*.zip
+            docker-release/Cherry-blossoms-cat-Docker-*.json
+            docker-release/DOCKER-SHA256SUMS.txt
