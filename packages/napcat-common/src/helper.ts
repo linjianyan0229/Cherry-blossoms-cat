@@ -2,8 +2,7 @@ import path from 'node:path';
 import fs from 'fs';
 import os from 'node:os';
 import { QQVersionConfigType, QQLevel } from './types';
-import { compareSemVer } from './version';
-import { getAllGitHubTags as getAllTagsFromMirror } from './mirror';
+import { getProjectRelease, getProjectReleases } from './project-release';
 
 // 导出 compareSemVer 供其他模块使用
 export { compareSemVer } from './version';
@@ -246,23 +245,14 @@ export function parseAppidFromMajor (nodeMajor: string): string | undefined {
   return undefined;
 }
 
-// ============== GitHub Tags 获取 ==============
-// 使用 mirror 模块统一管理镜像
+// Project version checks use only complete published releases from this repository.
+// Keep the legacy parameter for callers; it never selects a proxy or another source.
 
-export async function getAllTags (mirror?: string): Promise<{ tags: string[], mirror: string; }> {
-  return getAllTagsFromMirror('NapNeko', 'NapCatQQ', mirror);
+export async function getAllTags (_mirror?: string): Promise<{ tags: string[], mirror: string; }> {
+  const releases = await getProjectReleases();
+  return { tags: releases.map(release => release.tag_name), mirror: '' };
 }
 
-export async function getLatestTag (mirror?: string): Promise<string> {
-  const { tags } = await getAllTags(mirror);
-
-  // 使用 SemVer 规范排序
-  tags.sort((a, b) => compareSemVer(a, b));
-
-  const latest = tags.at(-1);
-  if (!latest) {
-    throw new Error('No tags found');
-  }
-  // 去掉开头的 v
-  return latest.replace(/^v/, '');
+export async function getLatestTag (_mirror?: string): Promise<string> {
+  return (await getProjectRelease()).version;
 }

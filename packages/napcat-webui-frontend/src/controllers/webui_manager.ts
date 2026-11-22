@@ -10,6 +10,12 @@ export interface Log {
   message: string;
 }
 
+export interface ProjectPackageInfo extends PackageInfo {
+  updateMode: 'image' | 'files';
+  repository: string;
+  releaseUrl: string;
+}
+
 export default class WebUIManager {
   public static async checkWebUiLogined () {
     const { data } =
@@ -74,7 +80,7 @@ export default class WebUIManager {
 
   public static async GetNapCatVersion () {
     const { data } =
-      await serverRequest.get<ServerResponse<PackageInfo>>('/base/GetNapCatVersion');
+      await serverRequest.get<ServerResponse<ProjectPackageInfo>>('/base/GetNapCatVersion');
     return data.data;
   }
 
@@ -90,32 +96,24 @@ export default class WebUIManager {
   static readonly VersionTypes = {
     RELEASE: 'release',
     PRERELEASE: 'prerelease',
-    ACTION: 'action',
   } as const;
 
   /**
-   * 获取所有可用的版本列表（支持分页、过滤和搜索）
-   * 懒加载：根据 type 参数只获取对应类型的版本
+   * 获取本项目正式与预发布版本（支持分页和搜索）
    */
   public static async getAllReleases (options: {
     page?: number;
     pageSize?: number;
-    type?: 'release' | 'action' | 'all';
+    type?: 'release';
     search?: string;
-    mirror?: string;
   } = {}) {
-    const { page = 1, pageSize = 20, type = 'release', search = '', mirror } = options;
+    const { page = 1, pageSize = 20, type = 'release', search = '' } = options;
     const { data } = await serverRequest.get<ServerResponse<{
       versions: Array<{
         tag: string;
-        type: 'release' | 'prerelease' | 'action';
-        artifactId?: number;
-        artifactName?: string;
+        type: 'release' | 'prerelease';
         createdAt?: string;
-        expiresAt?: string;
         size?: number;
-        workflowRunId?: number;
-        headSha?: string;
       }>;
       pagination: {
         page: number;
@@ -125,7 +123,7 @@ export default class WebUIManager {
       };
       mirror?: string;
     }>>('/base/getAllReleases', {
-      params: { page, pageSize, type, search, mirror },
+      params: { page, pageSize, type, search },
     });
     return data.data;
   }
@@ -136,10 +134,10 @@ export default class WebUIManager {
     return data.data;
   }
 
-  public static async UpdateNapCat (mirror?: string) {
+  public static async UpdateNapCat () {
     const { data } = await serverRequest.post<ServerResponse<any>>(
       '/UpdateNapCat/update',
-      { mirror },
+      {},
       { timeout: 120000 } // 2分钟超时
     );
     return data;
@@ -147,14 +145,13 @@ export default class WebUIManager {
 
   /**
    * 更新到指定版本
-   * @param targetVersion 目标版本 tag，如 "v4.9.9" 或 "action-123456"
+   * @param targetVersion 本项目发行 tag，如 "v0.0.3-rc.1"
    * @param force 是否强制更新（允许降级）
-   * @param mirror 指定使用的镜像
    */
-  public static async UpdateNapCatToVersion (targetVersion: string, force: boolean = false, mirror?: string) {
+  public static async UpdateNapCatToVersion (targetVersion: string, force: boolean = false) {
     const { data } = await serverRequest.post<ServerResponse<any>>(
       '/UpdateNapCat/update',
-      { targetVersion, force, mirror },
+      { targetVersion, force },
       { timeout: 120000 } // 2分钟超时
     );
     return data;

@@ -41,7 +41,7 @@ export async function NCoreInitFramework (
   const pathWrapper = new NapCatPathWrapper();
 
   const logger = new LogWrapper(pathWrapper.logsPath);
-  await applyPendingUpdates(pathWrapper, logger);
+  await applyPendingUpdates(pathWrapper, logger, 'Framework');
   const basicInfoWrapper = new QQBasicInfoWrapper({ logger });
   const wrapper = loadQQWrapper(basicInfoWrapper.QQMainPath, basicInfoWrapper.getFullQQVersion());
   const nativePacketHandler = new NativePacketHandler({ logger }); // 初始化 NativePacketHandler 用于后续使用

@@ -16,6 +16,16 @@ GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发�
 
 构建工作流仅负责打包，不在 GitHub Runner 上执行测试。所有类型检查和项目测试都必须在 [指定的隔离测试服务器](TESTING.md) 上执行。
 
+### 部署后的版本检测与更新
+
+版本检测和 WebUI 在线更新固定使用 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)。检测包含内测预发布版本，按语义版本排序，只展示已公开发布且 Shell、Framework 和 `SHA256SUMS.txt` 附件齐全的发行；草稿、单独 Git 标签和 Actions 审阅产物不作为在线更新版本。查询失败时显示错误，不回退到上游仓库。
+
+文件部署在下载后先核对同一 Release 的 ZIP 大小和 SHA-256，再解压及替换程序文件，保留现有配置和用户插件。旧版未校验的待更新记录不会自动应用。Docker 部署同样检测本仓库版本，但通过宿主机部署目录中的 `update.sh` 替换镜像，详见 [Docker 更新说明](DOCKER.md)。构建版本由本次 `NAPCAT_VERSION` 或源码版本决定，不借用远端标签或旧版本缓存。
+
+待更新记录绑定原安装目录和 Shell/Framework 类型，不能应用到另一个安装。如果核心文件被占用而留待启动时替换，替换发生时进程可能已经加载旧核心；此时启动日志会提示再次重启，随后核对 WebUI 的实际运行版本。
+
+这些修复随后续包含本 PR 的构建分发；已有 `0.0.1` 附件和已运行的旧实例不会因主分支合并自动改变。
+
 ## 主要功能
 
 - Shell 和 Framework 两种运行方式。
@@ -43,7 +53,7 @@ GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发�
 
 Cherry-blossoms-cat 发行版本 `0.0.1` 与 QQ/NTQQ 客户端的版本号是两套独立版本。客户端更新后，应依据完整 QQ 版本、Build、操作系统和架构检查版本参数、`wrapper.node` 接口与 native hook 适配，不能仅凭 TypeScript 构建成功认定客户端兼容。详细维护要点见 [MAINTAINING.md](MAINTAINING.md)。
 
-Linux 维护清单记录在 [compatibility/linux-qq.json](compatibility/linux-qq.json)。`3.2.34-53644` x64 已完成隔离环境中的扫码登录和核心在线验证；arm64 只核对了映射。官网当前包 `3.2.35-54395` x64 已登记 AppID，并通过新启动器的无登录启动检查；其原生发包偏移仍缺失，暂不作为完整兼容版本。实际验证级别以维护清单为准，流程见 [Linux QQ 版本维护](LINUX_QQ_MAINTENANCE.md)。
+Linux 维护清单记录在 [compatibility/linux-qq.json](compatibility/linux-qq.json)。`3.2.34-53644` x64 已完成隔离环境中的扫码登录和核心在线验证；arm64 只核对了映射。`3.2.35-54395` x64 已补齐原生发包与 Napi hook 偏移，在独立隔离实例中完成扫码登录、双向协议回调以及最近联系人、群历史和按 ID 读取消息的验证。尚未验证主动发送消息、长期事件推送或反检测效果；不据此宣称完整兼容。详细适配记录和验证边界见 [Linux QQ 版本维护](LINUX_QQ_MAINTENANCE.md)。
 
 ## 开发和提交
 

@@ -6,24 +6,20 @@ import { Tooltip } from '@heroui/tooltip';
 import { Select, SelectItem } from '@heroui/select';
 import { Switch } from '@heroui/switch';
 import { Pagination } from '@heroui/pagination';
-import { Tabs, Tab } from '@heroui/tabs';
 import { Input } from '@heroui/input';
-import { Button } from '@heroui/button';
 import { useLocalStorage, useDebounce } from '@uidotdev/usehooks';
 import { useRequest } from 'ahooks';
 import clsx from 'clsx';
 import { FaCircleInfo, FaQq } from 'react-icons/fa6';
 import { IoLogoChrome, IoLogoOctocat, IoSearch } from 'react-icons/io5';
-import { IoMdFlash, IoMdCheckmark, IoMdSettings } from 'react-icons/io';
 import { RiMacFill } from 'react-icons/ri';
 import { useState, useCallback } from 'react';
+import { PROJECT_GITHUB_URL, PROJECT_NAME, PROJECT_RELEASES_URL, PROJECT_REPOSITORY } from 'napcat-common/src/project-repository';
 
 import key from '@/const/key';
 import WebUIManager from '@/controllers/webui_manager';
-import MirrorManager from '@/controllers/mirror_manager';
 import useDialog from '@/hooks/use-dialog';
 import Modal from '@/components/modal';
-import MirrorSelectorModal from '@/components/mirror_selector_modal';
 import { hasNewVersion, compareVersion } from '@/utils/version';
 
 export interface SystemInfoItemProps {
@@ -71,7 +67,18 @@ const SystemInfoItem: React.FC<SystemInfoItemProps> = ({
 
 export interface NewVersionTipProps {
   currentVersion?: string;
+  imageManaged?: boolean;
 }
+
+const DockerUpdateInstructions = () => (
+  <div className='space-y-4 text-sm text-default-600'>
+    <p>此实例由 Docker 镜像管理。请在宿主机的部署目录运行 <code>bash ./update.sh</code> 更新镜像并重新创建服务。</p>
+    <div className='flex flex-wrap gap-3'>
+      <a className='text-primary underline' href={`${PROJECT_GITHUB_URL}/blob/main/DOCKER.md`} target='_blank' rel='noopener noreferrer'>Docker 更新说明</a>
+      <a className='text-primary underline' href={PROJECT_RELEASES_URL} target='_blank' rel='noopener noreferrer'>本项目发行</a>
+    </div>
+  </div>
+);
 
 // 更新状态类型
 type UpdateStatus = 'idle' | 'updating' | 'success' | 'error';
@@ -82,7 +89,8 @@ const UpdateDialogContent: React.FC<{
   latestVersion: string;
   status: UpdateStatus;
   errorMessage?: string;
-}> = ({ currentVersion, latestVersion, status, errorMessage }) => {
+  resultMessage?: string;
+}> = ({ currentVersion, latestVersion, status, errorMessage, resultMessage }) => {
   return (
     <div className='space-y-6'>
       {/* 版本对比 */}
@@ -138,10 +146,10 @@ const UpdateDialogContent: React.FC<{
           </div>
           <div className='text-center'>
             <p className='text-sm font-medium text-success-600 dark:text-success-400'>
-              更新完成
+              更新结果
             </p>
-            <p className='text-xs text-default-500 mt-1'>
-              请重启 NapCat 以应用新版本
+            <p className='text-xs text-default-500 mt-1 whitespace-pre-wrap'>
+              {resultMessage || `请重启 ${PROJECT_NAME} 以应用新版本`}
             </p>
           </div>
           <div className='mt-2 p-3 rounded-lg bg-warning-50/50 dark:bg-warning-900/20 border border-warning-200/50 dark:border-warning-700/30'>
@@ -149,7 +157,7 @@ const UpdateDialogContent: React.FC<{
               <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' />
               </svg>
-              <span>重启 NapCat 生效</span>
+              <span>请按更新结果中的说明完成重启</span>
             </p>
           </div>
           <div className='flex gap-3 justify-center mt-2 w-full'>
@@ -185,10 +193,10 @@ const UpdateDialogContent: React.FC<{
 };
 
 const NewVersionTip = (props: NewVersionTipProps) => {
-  const { currentVersion } = props;
+  const { currentVersion, imageManaged = false } = props;
   const dialog = useDialog();
   const { data: latestVersion, error } = useRequest(WebUIManager.getLatestTag, {
-    cacheKey: 'napcat-latest-tag',
+    cacheKey: `${PROJECT_REPOSITORY}:latest-tag`,
     staleTime: 10 * 60 * 1000,
     cacheTime: 30 * 60 * 1000,
   });
@@ -200,19 +208,22 @@ const NewVersionTip = (props: NewVersionTipProps) => {
   }
 
   const handleUpdate = async () => {
+    if (imageManaged) return;
     setUpdateStatus('updating');
 
     try {
-      await WebUIManager.UpdateNapCat();
+      const response = await WebUIManager.UpdateNapCat();
+      const resultMessage = typeof response.data?.message === 'string' ? response.data.message : '';
       setUpdateStatus('success');
       // 显示更新成功对话框
       dialog.alert({
-        title: '更新完成',
+        title: '更新结果',
         content: (
           <UpdateDialogContent
             currentVersion={currentVersion}
             latestVersion={latestVersion}
             status='success'
+            resultMessage={resultMessage}
           />
         ),
         confirmText: '我知道了',
@@ -240,6 +251,15 @@ const NewVersionTip = (props: NewVersionTipProps) => {
   };
 
   const showUpdateDialog = () => {
+    if (imageManaged) {
+      dialog.alert({
+        title: '镜像更新指引',
+        content: <DockerUpdateInstructions />,
+        confirmText: '关闭',
+        size: 'md',
+      });
+      return;
+    }
     dialog.confirm({
       title: '发现新版本',
       content: (
@@ -278,15 +298,9 @@ const NewVersionTip = (props: NewVersionTipProps) => {
 // 版本信息类型
 interface VersionInfo {
   tag: string;
-  type: 'release' | 'prerelease' | 'action';
-  artifactId?: number;
-  artifactName?: string;
+  type: 'release' | 'prerelease';
   createdAt?: string;
-  expiresAt?: string;
   size?: number;
-  workflowRunId?: number;
-  headSha?: string;
-  workflowTitle?: string;
 }
 
 // 版本选择对话框内容
@@ -304,80 +318,33 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
   const [forceUpdate, setForceUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [resultMessage, setResultMessage] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<'release' | 'action'>('release');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // 镜像相关状态
-  const [selectedMirror, setSelectedMirror] = useState<string | undefined>(undefined);
-  const [mirrorLatency, setMirrorLatency] = useState<number | null>(null);
-  const [mirrorTesting, setMirrorTesting] = useState(false);
-  const [mirrorModalOpen, setMirrorModalOpen] = useState(false);
-
-  // 测试当前镜像速度
-  const testCurrentMirror = async () => {
-    setMirrorTesting(true);
-    try {
-      const result = await MirrorManager.testSingleMirror(selectedMirror || '', 'file');
-      if (result.success) {
-        setMirrorLatency(result.latency);
-      } else {
-        setMirrorLatency(null);
-      }
-    } catch (_e) {
-      setMirrorLatency(null);
-    } finally {
-      setMirrorTesting(false);
-    }
-  };
-
-  const formatLatency = (latency: number) => {
-    if (latency >= 5000) return '>5s';
-    if (latency >= 1000) return `${(latency / 1000).toFixed(1)}s`;
-    return `${latency}ms`;
-  };
-
-  const getLatencyColor = (latency: number | null): 'success' | 'warning' | 'danger' | 'default' => {
-    if (latency === null) return 'default';
-    if (latency < 300) return 'success';
-    if (latency < 1000) return 'warning';
-    return 'danger';
-  };
-
-  const getMirrorDisplayName = () => {
-    if (!selectedMirror) return '自动选择';
-    try {
-      return new URL(selectedMirror).hostname;
-    } catch {
-      return selectedMirror;
-    }
-  };
-
-  // 获取所有可用版本（带分页、过滤和搜索）
-  // 懒加载：根据 activeTab 只获取对应类型的版本
+  // 获取本项目正式和预发布版本（带分页和搜索）
   const pageSize = 15;
   const { data: releasesData, loading: releasesLoading, error: releasesError } = useRequest(
     () => WebUIManager.getAllReleases({
       page: currentPage,
       pageSize,
-      type: activeTab,
+      type: 'release',
       search: debouncedSearch,
-      mirror: selectedMirror,
     }),
     {
-      refreshDeps: [currentPage, activeTab, debouncedSearch, selectedMirror],
+      refreshDeps: [currentPage, debouncedSearch],
     }
   );
 
   // 版本列表已在后端过滤，直接使用
-  const filteredVersions = (releasesData?.versions || []) as VersionInfo[];
+  const filteredVersions: VersionInfo[] = (releasesData?.versions || []).filter(version =>
+    version.type === 'release' || version.type === 'prerelease'
+  );
 
   // 检查是否是降级（使用语义化版本比较）
   const isDowngrade = useCallback((targetTag: string): boolean => {
     if (!currentVersion || !targetTag) return false;
-    // Action 版本不算降级
-    if (targetTag.startsWith('action-')) return false;
     return compareVersion(targetTag, currentVersion) < 0;
   }, [currentVersion]);
 
@@ -388,9 +355,11 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
     if (!selectedVersion) return;
     setUpdateStatus('updating');
     setErrorMessage('');
+    setResultMessage('');
 
     try {
-      await WebUIManager.UpdateNapCatToVersion(selectedVersionTag, force, selectedMirror);
+      const response = await WebUIManager.UpdateNapCatToVersion(selectedVersionTag, force);
+      setResultMessage(typeof response.data?.message === 'string' ? response.data.message : '');
       setUpdateStatus('success');
     } catch (err) {
       console.error('Update failed:', err);
@@ -441,10 +410,10 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
         </div>
         <div className='text-center w-full'>
           <p className='text-sm font-medium text-success-600 dark:text-success-400'>
-            更新到 {selectedVersionTag} 完成
+            更新结果：{selectedVersionTag}
           </p>
-          <p className='text-xs text-default-500 mt-1 mb-6'>
-            请重启 NapCat 以应用新版本
+          <p className='text-xs text-default-500 mt-1 mb-6 whitespace-pre-wrap'>
+            {resultMessage || `请重启 ${PROJECT_NAME} 以应用新版本`}
           </p>
           <div className='flex gap-3 justify-center'>
             <button
@@ -508,6 +477,9 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
 
   return (
     <div className='space-y-4'>
+      <p className='text-xs text-default-500'>
+        更新源：<a className='text-primary underline' href={PROJECT_GITHUB_URL} target='_blank' rel='noopener noreferrer'>{PROJECT_REPOSITORY}</a>
+      </p>
       {/* 当前版本 */}
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
@@ -516,88 +488,7 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
             v{currentVersion}
           </Chip>
         </div>
-        {releasesData?.mirror && (
-          <div className='text-xs text-default-400 flex items-center gap-1'>
-            <span className='w-2 h-2 rounded-full bg-success-500' />
-            镜像: {releasesData.mirror}
-          </div>
-        )}
       </div>
-
-      {/* 版本类型切换 */}
-      <Tabs
-        selectedKey={activeTab}
-        onSelectionChange={(key) => {
-          setActiveTab(key as 'release' | 'action');
-          setCurrentPage(1);
-          setSelectedVersion(null);
-          setSearchQuery('');
-        }}
-        size='sm'
-        color='primary'
-        variant='underlined'
-        classNames={{
-          tabList: 'gap-4',
-        }}
-      >
-        <Tab key='release' title='正式版本' />
-        <Tab key='action' title='临时版本 (Action)' />
-      </Tabs>
-
-      {/* 下载镜像状态卡片 */}
-      <Card className='bg-default-100/50 shadow-sm'>
-        <CardBody className='py-2 px-3'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <span className='text-xs text-default-500'>镜像源:</span>
-              <span className='text-sm font-medium'>{getMirrorDisplayName()}</span>
-              {mirrorLatency !== null && (
-                <Chip
-                  size='sm'
-                  color={getLatencyColor(mirrorLatency)}
-                  variant='flat'
-                  startContent={<IoMdCheckmark size={12} />}
-                >
-                  {formatLatency(mirrorLatency)}
-                </Chip>
-              )}
-              {mirrorLatency === null && !mirrorTesting && (
-                <Chip size='sm' color='default' variant='flat'>
-                  未测试
-                </Chip>
-              )}
-              {mirrorTesting && (
-                <Chip size='sm' color='primary' variant='flat'>
-                  测速中...
-                </Chip>
-              )}
-            </div>
-            <div className='flex items-center gap-1'>
-              <Tooltip content='测速'>
-                <Button
-                  isIconOnly
-                  size='sm'
-                  variant='light'
-                  onPress={testCurrentMirror}
-                  isLoading={mirrorTesting}
-                >
-                  <IoMdFlash size={16} />
-                </Button>
-              </Tooltip>
-              <Tooltip content='切换镜像'>
-                <Button
-                  isIconOnly
-                  size='sm'
-                  variant='light'
-                  onPress={() => setMirrorModalOpen(true)}
-                >
-                  <IoMdSettings size={16} />
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
 
       {/* 搜索框 */}
       <Input
@@ -671,31 +562,18 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
                         <div className='flex flex-col gap-0.5'>
                           <div className='flex items-center gap-2'>
                             <span className='truncate max-w-[300px]'>
-                              {version.type === 'action'
-                                ? (version.workflowTitle || version.artifactName || version.tag)
-                                : version.tag}
+                              {version.tag}
                             </span>
                             {version.type === 'prerelease' && (
                               <Chip size='sm' color='secondary' variant='flat'>预发布</Chip>
                             )}
-                            {version.type === 'action' && (
-                              <Chip size='sm' color='default' variant='flat'>临时</Chip>
-                            )}
                             {isCurrent && (
                               <Chip size='sm' color='success' variant='flat'>当前</Chip>
                             )}
-                            {downgrade && !isCurrent && version.type !== 'action' && (
+                            {downgrade && !isCurrent && (
                               <Chip size='sm' color='warning' variant='flat'>降级</Chip>
                             )}
                           </div>
-                          {version.type === 'action' && (
-                            <div className='text-xs text-default-400 flex items-center gap-2'>
-                              <span className='font-mono bg-default-100 dark:bg-default-100/10 px-1 rounded'>{version.tag}</span>
-                              {version.headSha && <span className='font-mono' title={version.headSha}>{version.headSha.slice(0, 7)}</span>}
-                              {version.createdAt && <span>{new Date(version.createdAt).toLocaleString()}</span>}
-                              {version.size && <span>{(version.size / 1024 / 1024).toFixed(1)} MB</span>}
-                            </div>
-                          )}
                         </div>
                       </SelectItem>
                     );
@@ -703,21 +581,6 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
                 </Select>
               )}
       </div>
-
-      {/* Action 版本提示 */}
-      {activeTab === 'action' && (
-        <div className='p-3 rounded-lg bg-default-50 dark:bg-default-100/10 border border-default-200/50'>
-          <p className='text-xs text-default-500'>
-            临时版本来自 GitHub Actions 构建，可能不稳定，适合测试新功能。
-            {selectedVersion?.expiresAt && (
-              <span className='block mt-1 text-warning-600'>
-                此版本将于 {new Date(selectedVersion.expiresAt).toLocaleDateString()} 过期
-              </span>
-            )}
-          </p>
-
-        </div>
-      )}
 
       {/* 降级警告 */}
       {selectedVersion && isSelectedDowngrade && (
@@ -783,17 +646,6 @@ const VersionSelectDialogContent: React.FC<VersionSelectDialogProps> = ({
         </button>
       </div>
 
-      {/* 镜像选择弹窗 */}
-      <MirrorSelectorModal
-        isOpen={mirrorModalOpen}
-        onClose={() => setMirrorModalOpen(false)}
-        currentMirror={selectedMirror}
-        onSelect={(mirror) => {
-          setSelectedMirror(mirror || undefined);
-          setMirrorLatency(null);
-        }}
-        type='file'
-      />
     </div>
   );
 };
@@ -809,12 +661,13 @@ const NapCatVersion: React.FC<NapCatVersionProps> = ({ hasBackground = false }) 
     loading: packageLoading,
     error: packageError,
   } = useRequest(WebUIManager.GetNapCatVersion, {
-    cacheKey: 'napcat-version',
-    staleTime: 60 * 60 * 1000,
-    cacheTime: 24 * 60 * 60 * 1000,
+    cacheKey: `${PROJECT_REPOSITORY}:runtime-version`,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const currentVersion = packageData?.version;
+  const imageManaged = packageData?.updateMode === 'image';
 
   // 点击版本号时显示版本选择对话框
   const handleVersionClick = useCallback(() => {
@@ -825,7 +678,7 @@ const NapCatVersion: React.FC<NapCatVersionProps> = ({ hasBackground = false }) 
   return (
     <>
       <SystemInfoItem
-        title='NapCat 版本'
+        title='项目版本'
         icon={<IoLogoOctocat className='text-xl' />}
         hasBackground={hasBackground}
         value={
@@ -838,7 +691,7 @@ const NapCatVersion: React.FC<NapCatVersionProps> = ({ hasBackground = false }) 
                 <Spinner size='sm' />
               )
               : (
-                <Tooltip content='点击管理版本'>
+                <Tooltip content={`${PROJECT_NAME}：点击${imageManaged ? '查看镜像更新指引' : '管理版本'}`}>
                   <span
                     className='cursor-pointer hover:text-primary-500 transition-colors underline decoration-dashed underline-offset-2'
                     onClick={handleVersionClick}
@@ -848,19 +701,23 @@ const NapCatVersion: React.FC<NapCatVersionProps> = ({ hasBackground = false }) 
                 </Tooltip>
               )
         }
-        endContent={<NewVersionTip currentVersion={currentVersion} />}
+        endContent={<NewVersionTip currentVersion={currentVersion} imageManaged={imageManaged} />}
       />
       {isVersionModalOpen && (
         <Modal
-          title='版本管理'
+          title={imageManaged ? '镜像更新指引' : '版本管理'}
           size='lg'
           hideFooter
           onClose={() => setIsVersionModalOpen(false)}
           content={
-            <VersionSelectDialogContent
-              currentVersion={currentVersion || ''}
-              onClose={() => setIsVersionModalOpen(false)}
-            />
+            imageManaged
+              ? <DockerUpdateInstructions />
+              : (
+                <VersionSelectDialogContent
+                  currentVersion={currentVersion || ''}
+                  onClose={() => setIsVersionModalOpen(false)}
+                />
+              )
           }
         />
       )}
