@@ -7,6 +7,33 @@ import { getMajorPath } from '@/napcat-core/index';
 import { QQAppidTableType, QQPackageInfoType, QQVersionConfigType } from 'napcat-common/src/types';
 import path from 'node:path';
 
+function getBuildFromVersion (version: string | undefined): string | undefined {
+  if (typeof version !== 'string') return undefined;
+  const separator = version.indexOf('-');
+  return separator === -1 ? undefined : version.slice(separator + 1);
+}
+
+function parseQQBuild (build: string | undefined, label: string): number {
+  const value = Number(build);
+  if (typeof build !== 'string' || build.trim() !== build || !/^\d+$/.test(build) || !Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${label}无效: ${String(build)}`);
+  }
+  return value;
+}
+
+export function formatQUAFallback (platform: NodeJS.Platform, fullVersion: string, build: string | undefined): string {
+  if (platform === 'linux') {
+    const version = fullVersion.match(/^(\d+\.\d+\.\d+)(?:[-.]\d+)?$/)?.[1];
+    if (!version) throw new Error(`Linux QQ版本格式无效: ${fullVersion}`);
+    return `V1_LNX_NQ_${version}_${parseQQBuild(build, 'QQ当前构建号')}_GW_B`;
+  }
+  const platformMapping: Partial<Record<NodeJS.Platform, string>> = {
+    win32: `V1_WIN_${fullVersion}_${build}_GW_B`,
+    darwin: `V1_MAC_${fullVersion}_${build}_GW_B`,
+  };
+  return platformMapping[platform] ?? platformMapping.win32!;
+}
+
 export class QQBasicInfoWrapper {
   QQMainPath: string | undefined;
   QQPackageInfoPath: string | undefined;
@@ -43,7 +70,10 @@ export class QQBasicInfoWrapper {
 
   // 基础函数
   getQQBuildStr () {
-    return this.QQVersionConfig?.curVersion.split('-')[1] ?? this.QQPackageInfo?.buildVersion;
+    if (this.isQuickUpdate) {
+      return getBuildFromVersion(this.QQVersionConfig?.curVersion) ?? this.QQVersionConfig?.buildId;
+    }
+    return this.QQPackageInfo?.buildVersion ?? getBuildFromVersion(this.QQPackageInfo?.version);
   }
 
   getFullQQVersion () {
@@ -53,19 +83,14 @@ export class QQBasicInfoWrapper {
   }
 
   requireMinNTQQBuild (buildStr: string) {
-    const currentBuild = +(this.getQQBuildStr() ?? '0');
-    if (currentBuild === 0) throw new Error('QQBuildStr获取失败');
-    return currentBuild >= parseInt(buildStr);
+    const currentBuild = parseQQBuild(this.getQQBuildStr(), 'QQ当前构建号');
+    const minimumBuild = parseQQBuild(buildStr, 'QQ最低构建号');
+    return currentBuild >= minimumBuild;
   }
 
   // 此方法不要直接使用
   getQUAFallback () {
-    const platformMapping: Partial<Record<NodeJS.Platform, string>> = {
-      win32: `V1_WIN_${this.getFullQQVersion()}_${this.getQQBuildStr()}_GW_B`,
-      darwin: `V1_MAC_${this.getFullQQVersion()}_${this.getQQBuildStr()}_GW_B`,
-      linux: `V1_LNX_${this.getFullQQVersion()}_${this.getQQBuildStr()}_GW_B`,
-    };
-    return platformMapping[systemPlatform] ?? (platformMapping.win32)!;
+    return formatQUAFallback(systemPlatform, this.getFullQQVersion(), this.getQQBuildStr());
   }
 
   getAppIdFallback () {

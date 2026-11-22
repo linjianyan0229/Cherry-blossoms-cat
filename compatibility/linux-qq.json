@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "officialSources": [
+    "https://im.qq.com/proxy/domain/qq-web.cdn-go.cn/im.qq.com_new/latest/rainbow/pcConfig.json",
+    "https://qq-web.cdn-go.cn/im.qq.com_new/latest/rainbow/pcConfig.json"
+  ],
+  "clients": [
+    {
+      "version": "3.2.34-53644",
+      "arch": "x64",
+      "projectRelease": "0.0.1",
+      "requireMappings": true,
+      "validation": "login-verified",
+      "verifiedOn": "2026-11-22",
+      "runtime": "qq-electron",
+      "electron": "40.0.0",
+      "node": "24.11.1",
+      "package": {
+        "url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.36/beta/9ee04bef/linuxqq_3.2.34-53644_amd64.deb",
+        "officialUrl": "https://qqdl.gtimg.cn/qqfile/QQNTV2/9.9.36/release/9ee04bef/QQ_3.2.34_260924_amd64_01.deb",
+        "updateDate": "2026-09-24",
+        "sha256": "436c65e1dd28422e128a21cbddb5fe4e2e6c079d7f27fec2541e014d38cc336e",
+        "bytes": 187185496
+      },
+      "messagesVerified": false,
+      "antiDetectionVerified": false
+    },
+    {
+      "version": "3.2.34-53644",
+      "arch": "arm64",
+      "projectRelease": "0.0.1",
+      "requireMappings": true,
+      "validation": "mapping-only",
+      "verifiedOn": null,
+      "runtime": "qq-electron",
+      "package": {
+        "url": "https://qqdl.gtimg.cn/qqfile/QQNTV2/9.9.36/release/9ee04bef/QQ_3.2.34_260924_arm64_01.deb",
+        "updateDate": "2026-09-24",
+        "sha256": null,
+        "bytes": null
+      },
+      "messagesVerified": false,
+      "antiDetectionVerified": false
+    },
+    {
+      "version": "3.2.35-54395",
+      "arch": "x64",
+      "projectRelease": "development",
+      "requireMappings": false,
+      "validation": "startup-verified",
+      "verifiedOn": "2026-11-22",
+      "runtime": "qq-electron",
+      "electron": "40.0.0",
+      "node": "24.11.1",
+      "nativePacketOffsets": "unavailable",
+      "napiHookOffsets": "unavailable",
+      "package": {
+        "url": "https://qqdl.gtimg.cn/qqfile/QQNTV2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",
+        "updateDate": "2026-11-03",
+        "mirrorUrl": "https://github.com/a1515333102/QQ-Releases/releases/download/9.9.37%2B3.2.35/QQ_3.2.35_261103_amd64_01.deb",
+        "sha256": "7de03862327abbd16da27130413698c9517782b27194afc593bc3abf9b55f9ac",
+        "bytes": 188287504
+      },
+      "messagesVerified": false,
+      "antiDetectionVerified": false
+    }
+  ]
+}
