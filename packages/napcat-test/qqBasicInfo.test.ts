@@ -120,12 +120,25 @@ describe('QQ AppID lookup', () => {
   it.each([
     ['win32', '9.9.99-99999', 'V1_WIN_9.9.99-99999_99999_GW_B'],
     ['darwin', '7.0.99-99999', 'V1_MAC_7.0.99-99999_99999_GW_B'],
-  ] as const)('preserves the existing fallback format on %s', (platform, version, qua) => {
-    Object.defineProperty(process, 'platform', { ...platformDescriptor, value: platform });
+  ] as const)('preserves the existing fallback format on %s', async (platform, version, qua) => {
     info.QQPackageInfo!.version = version;
     info.QQPackageInfo!.buildVersion = '99999';
 
-    expect(info.getQUAFallback()).toBe(qua);
+    vi.doMock('napcat-common/src/system', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('napcat-common/src/system')>();
+      return { ...actual, systemPlatform: platform };
+    });
+    vi.resetModules();
+    try {
+      const { QQBasicInfoWrapper: PlatformQQBasicInfoWrapper } = await import('@/napcat-core/helper/qq-basic-info');
+      expect(PlatformQQBasicInfoWrapper.prototype.getQUAFallback.call(info)).toBe(qua);
+    } finally {
+      vi.doMock('napcat-common/src/system', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('napcat-common/src/system')>();
+        return { ...actual, get systemPlatform () { return process.platform; } };
+      });
+      vi.resetModules();
+    }
   });
 });
 

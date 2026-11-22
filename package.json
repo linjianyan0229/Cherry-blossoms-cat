@@ -16,7 +16,7 @@
     "test": "pnpm --filter napcat-test run test",
     "test:ui": "pnpm --filter napcat-test run test:ui",
     "maintain:linux": "node scripts/check-linux-qq.mjs",
-    "test:linux-maintenance": "node --test scripts/check-linux-qq.test.mjs",
+    "test:linux-maintenance": "node --test scripts/check-linux-qq.test.mjs scripts/linux-launcher.test.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
