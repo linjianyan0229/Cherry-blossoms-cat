@@ -105,9 +105,12 @@ export function assessPackageValidation (installed, arch, clients, tables, lates
   const packageIdentityVerified = Boolean(client && installed.version === latest.version &&
     (client.package.officialUrl ?? client.package.url) === latest.downloads[arch] &&
     client.package.updateDate === latest.updateDate && debSha256 && debSha256 === client.package.sha256);
-  return { installedBuildVerified, packageIdentityVerified,
+  return {
+    installedBuildVerified,
+    packageIdentityVerified,
     currentOfficialPackageValidated: installedBuildVerified && packageIdentityVerified,
-    fullBuildRequiresPackageInspection: !packageIdentityVerified };
+    fullBuildRequiresPackageInspection: !packageIdentityVerified,
+  };
 }
 
 async function hashFile (filename) {
@@ -162,9 +165,11 @@ async function main () {
     });
   const outcomes = await Promise.allSettled(requests);
   const sources = outcomes.filter(item => item.status === 'fulfilled').map(item => item.value);
-  const errors = outcomes.flatMap((item, index) => item.status === 'rejected' ? [{
-    source: metadataFiles[index] ?? manifest.officialSources[index], error: item.reason.message,
-  }] : []);
+  const errors = outcomes.flatMap((item, index) => item.status === 'rejected'
+    ? [{
+      source: metadataFiles[index] ?? manifest.officialSources[index], error: item.reason.message,
+    }]
+    : []);
   const selected = selectLatest(sources);
   const reportedVersionHasValidatedBuild = clients.some(client => client.arch === arch && client.version.split('-')[0] === selected.latest.version &&
     client.validation === 'login-verified' && Object.values(client.mappings).every(Boolean));

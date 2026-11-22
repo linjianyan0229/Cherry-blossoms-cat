@@ -9,8 +9,8 @@ const TOOL = 'Cherry-blossoms-cat-linux-shell';
 const MAIN = './cherry-linux-bootstrap.cjs';
 const STUB = 'cherry-linux-bootstrap.cjs';
 
-function fail(message) { throw new Error(message); }
-function options(argv) {
+function fail (message) { throw new Error(message); }
+function options (argv) {
   const result = {};
   const allowed = new Set(['--qq', '--shell', '--workdir', '--qq-data-dir']);
   for (let i = 0; i < argv.length; i += 2) {
@@ -20,15 +20,14 @@ function options(argv) {
   }
   return result;
 }
-function inputPath(value) {
+function inputPath (value) {
   if (typeof value !== 'string' || !value || /[\r\n\0]/.test(value)) fail('目录参数无效');
   return path.resolve(value);
 }
-function present(file) {
-  try { fs.lstatSync(file); return true; }
-  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+function present (file) {
+  try { fs.lstatSync(file); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
-function futurePath(value) {
+function futurePath (value) {
   let current = inputPath(value);
   const missing = [];
   while (!present(current)) {
@@ -39,29 +38,29 @@ function futurePath(value) {
   }
   return path.join(fs.realpathSync(current), ...missing);
 }
-function overlaps(a, b) {
+function overlaps (a, b) {
   const inside = (parent, child) => child === parent || child.startsWith(parent + path.sep);
   return inside(a, b) || inside(b, a);
 }
-function regular(file) {
+function regular (file) {
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.isSymbolicLink()) fail(`需要普通文件：${file}`);
 }
-function directory(dir) {
+function directory (dir) {
   const stat = fs.lstatSync(dir);
   if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(dir) !== dir) fail(`目录包含非预期链接：${dir}`);
   return stat;
 }
-function ownedDirectory(dir) {
+function ownedDirectory (dir) {
   const stat = directory(dir);
   if (stat.uid !== process.getuid()) fail(`专用目录必须属于当前用户：${dir}`);
 }
-function safeDirectory(dir) {
+function safeDirectory (dir) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   ownedDirectory(dir);
 }
-function digest(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
-function fileDigest(file) {
+function digest (bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
+function fileDigest (file) {
   const hash = crypto.createHash('sha256');
   const buffer = Buffer.alloc(64 * 1024);
   const fd = fs.openSync(file, 'r');
@@ -71,13 +70,12 @@ function fileDigest(file) {
   } finally { fs.closeSync(fd); }
   return hash.digest('hex');
 }
-function atomicWrite(file, bytes) {
+function atomicWrite (file, bytes) {
   const temporary = file + '.' + crypto.randomBytes(8).toString('hex') + '.tmp';
   fs.writeFileSync(temporary, bytes, { flag: 'wx', mode: 0o600 });
-  try { fs.renameSync(temporary, file); }
-  finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+  try { fs.renameSync(temporary, file); } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
 }
-function metadata(raw) {
+function metadata (raw) {
   const info = JSON.parse(raw.toString('utf8'));
   if (!info || typeof info !== 'object' || Array.isArray(info)) fail('QQ package.json 无效');
   const version = info.version;
@@ -90,7 +88,7 @@ function metadata(raw) {
   if (typeof info.main !== 'string' || !info.main) fail('QQ package.json 缺少原始 main');
   return { info, version, build };
 }
-function plan(opts, restore = false) {
+function plan (opts, restore = false) {
   const work = futurePath(opts['--workdir']);
   if (work === path.parse(work).root) fail('工作目录不能是文件系统根目录');
   const runtime = path.join(work, 'linux-qq-runtime');
@@ -121,7 +119,7 @@ function plan(opts, restore = false) {
   const meta = metadata(raw);
   return { work, runtime, source, shell, data, raw, meta };
 }
-function prepareRoot(p) {
+function prepareRoot (p) {
   safeDirectory(p.work);
   const lock = path.join(p.work, '.linux-launcher.lock');
   if (present(lock)) {
@@ -129,7 +127,7 @@ function prepareRoot(p) {
     if (fs.statSync(lock).uid !== process.getuid()) fail('目录锁文件必须属于当前用户');
   }
 }
-function managed(p) {
+function managed (p) {
   ownedDirectory(p.runtime);
   for (const dir of ['qq', 'qq/resources', 'qq/resources/app']) ownedDirectory(path.join(p.runtime, dir));
   const stateFile = path.join(p.runtime, 'launcher-state.json');
@@ -151,7 +149,7 @@ function managed(p) {
   if (fileDigest(wrapper) !== state.wrapperHash) fail('运行副本 wrapper.node 已被修改');
   return { state, backup, current, currentHash, packageFile, stateFile };
 }
-function installEntry(p, target, state) {
+function installEntry (p, target, state) {
   const stub = `// ${TOOL}\nrequire(${JSON.stringify(path.join(__dirname, 'linux-bootstrap.cjs'))});\n`;
   const injected = Buffer.from(JSON.stringify({ ...p.meta.info, main: MAIN }, null, 2) + '\n');
   state.stubHash = digest(Buffer.from(stub));
@@ -164,7 +162,7 @@ function installEntry(p, target, state) {
   }, null, 2) + '\n');
   atomicWrite(path.join(target, 'launcher-state.json'), JSON.stringify(state, null, 2) + '\n');
 }
-function prepare(p) {
+function prepare (p) {
   prepareRoot(p);
   const sourceHash = fileDigest(path.join(p.source, 'qq'));
   const wrapperHash = fileDigest(path.join(p.source, 'resources/app/wrapper.node'));
@@ -214,7 +212,7 @@ function prepare(p) {
   if (process.arch !== 'x64' || p.meta.version !== '3.2.34-53644') console.error('该 QQ 版本或架构尚未在本项目完成真实启动验证，请按 LINUX.md 检查兼容性。');
   process.stdout.write(p.data + '\n');
 }
-function restore(p) {
+function restore (p) {
   prepareRoot(p);
   const entry = managed(p);
   if (entry.currentHash === entry.state.packageHash) {

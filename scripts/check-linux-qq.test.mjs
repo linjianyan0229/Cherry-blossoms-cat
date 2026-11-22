@@ -3,10 +3,14 @@ import assert from 'node:assert/strict';
 import { assessPackageValidation, lookupMappings, readOfficialLinux, readPackageVersion, selectLatest, validateManifest } from './check-linux-qq.mjs';
 
 function official (version, updateDate) {
-  return { Linux: { version, updateDate,
-    x64DownloadUrl: { deb: 'https://qqdl.gtimg.cn/QQ_amd64.deb' },
-    armDownloadUrl: { deb: 'https://qqdl.gtimg.cn/QQ_arm64.deb' },
-  } };
+  return {
+    Linux: {
+      version,
+      updateDate,
+      x64DownloadUrl: { deb: 'https://qqdl.gtimg.cn/QQ_amd64.deb' },
+      armDownloadUrl: { deb: 'https://qqdl.gtimg.cn/QQ_arm64.deb' },
+    },
+  };
 }
 
 test('the stale CDN cannot conceal a newer official proxy release', () => {
@@ -42,8 +46,10 @@ test('x64 keeps its version-only AppID while arm64 uses its explicit override', 
   const version = '3.2.34-53644';
   const offsets = { send: 'CBF25A0', recv: 'CBF60E0' };
   const tables = {
-    appid: { [version]: { appid: 537391664, qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' },
-      [`${version}-arm64`]: { appid: '537391665', qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' } },
+    appid: {
+      [version]: { appid: 537391664, qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' },
+      [`${version}-arm64`]: { appid: '537391665', qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' },
+    },
     packet: { [`${version}-x64`]: offsets, [`${version}-arm64`]: offsets },
     napi2native: { [`${version}-x64`]: offsets, [`${version}-arm64`]: offsets },
   };
@@ -52,19 +58,30 @@ test('x64 keeps its version-only AppID while arm64 uses its explicit override', 
   delete tables.appid[`${version}-arm64`];
   assert.deepEqual(lookupMappings(version, 'arm64', tables), { appid: false, packet: true, napi2native: true });
   assert.deepEqual(lookupMappings('3.2.35-99999', 'x64', tables), { appid: false, packet: false, napi2native: false });
-  assert.throws(() => validateManifest({ schemaVersion: 1, clients: [{
-    version: '3.2.35-99999', arch: 'x64', requireMappings: true, validation: 'mapping-only', package: { sha256: null },
-  }] }, tables), /不一致/);
+  assert.throws(() => validateManifest({
+    schemaVersion: 1,
+    clients: [{
+      version: '3.2.35-99999', arch: 'x64', requireMappings: true, validation: 'mapping-only', package: { sha256: null },
+    }],
+  }, tables), /不一致/);
 });
 
 test('same website version does not validate a replacement download or an unchecked archive', () => {
   const installed = readPackageVersion({ version: '3.2.34-53644', buildVersion: '53644' });
   const offsets = { send: 'CBF25A0', recv: 'CBF60E0' };
-  const tables = { appid: { '3.2.34-53644': { appid: 537391664, qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' } },
-    packet: { [`${installed.fullVersion}-x64`]: offsets }, napi2native: { [`${installed.fullVersion}-x64`]: offsets } };
-  const clients = [{ version: installed.fullVersion, arch: 'x64', validation: 'login-verified', package: {
-    url: 'https://qqdl.gtimg.cn/old.deb', sha256: 'a'.repeat(64), updateDate: '2026-09-24',
-  } }];
+  const tables = {
+    appid: { '3.2.34-53644': { appid: 537391664, qua: 'V1_LNX_NQ_3.2.34_53644_GW_B' } },
+    packet: { [`${installed.fullVersion}-x64`]: offsets },
+    napi2native: { [`${installed.fullVersion}-x64`]: offsets },
+  };
+  const clients = [{
+    version: installed.fullVersion,
+    arch: 'x64',
+    validation: 'login-verified',
+    package: {
+      url: 'https://qqdl.gtimg.cn/old.deb', sha256: 'a'.repeat(64), updateDate: '2026-09-24',
+    },
+  }];
   const latest = { version: '3.2.34', updateDate: '2026-09-24', downloads: { x64: clients[0].package.url } };
   assert.equal(assessPackageValidation(installed, 'x64', clients, tables, latest).currentOfficialPackageValidated, false);
   assert.equal(assessPackageValidation(installed, 'x64', clients, tables, latest, 'a'.repeat(64)).currentOfficialPackageValidated, true);

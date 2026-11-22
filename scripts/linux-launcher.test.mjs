@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
@@ -11,13 +12,18 @@ const launcher = path.join(root, 'packages/napcat-shell-loader/launcher-linux.sh
 
 test('Linux preparation preserves source/config, restores bytes and rejects changed files or concurrent use',
   { skip: process.platform !== 'linux', timeout: 30000 }, async () => {
-    const scratch = fs.mkdtempSync('/tmp/cherry-launcher-test-');
+    const fixtureParent = path.resolve(process.env.CHERRY_LAUNCHER_TEST_TMPDIR ?? os.tmpdir());
+    const scratch = fs.mkdtempSync(path.join(fixtureParent, 'cherry-launcher-test-'));
     const source = path.join(scratch, 'QQ installation');
     const shell = path.join(scratch, 'Shell release');
     const work = path.join(scratch, 'work directory');
     const pkg = {
-      version: '3.2.35-54395', buildVersion: '54395', platform: 'linux', eleArch: process.arch,
-      main: './application.asar/app_launcher/index.js', untouched: { marker: 'preserve me' },
+      version: '3.2.35-54395',
+      buildVersion: '54395',
+      platform: 'linux',
+      eleArch: process.arch,
+      main: './application.asar/app_launcher/index.js',
+      untouched: { marker: 'preserve me' },
     };
     const original = JSON.stringify(pkg, null, 4) + '\n';
     const packageFile = path.join(source, 'resources/app/package.json');
@@ -76,7 +82,7 @@ test('Linux preparation preserves source/config, restores bytes and rejects chan
       assert.equal(fs.readFileSync(packageFile, 'utf8'), original);
     } finally {
       if (held) { held.stdin.end(); held.kill(); }
-      assert.equal(path.dirname(scratch), '/tmp');
+      assert.equal(path.dirname(scratch), fixtureParent);
       assert.ok(path.basename(scratch).startsWith('cherry-launcher-test-'));
       fs.rmSync(scratch, { recursive: true, force: true });
     }
