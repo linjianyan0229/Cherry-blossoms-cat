@@ -1,16 +1,14 @@
 {
-  "version": "3.2.35-54395",
+  "version": "3.2.34-53644",
   "architecture": "amd64",
   "validation": "login-verified",
-  "releaseChannel": "preview",
-  "nativePacketOffsets": "callback-verified",
-  "napiHookOffsets": "init-verified",
+  "releaseChannel": "stable",
   "loginVerified": true,
-  "messageReadVerified": true,
+  "messageReadVerified": false,
   "messagesVerified": false,
   "antiDetectionVerified": false,
-  "url": "https://qqdl.gtimg.cn/qqfile/qqntv2/9.9.37/release/816b3c79/QQ_3.2.35_261103_amd64_01.deb",
-  "bytes": 188287504,
-  "sha256": "7de03862327abbd16da27130413698c9517782b27194afc593bc3abf9b55f9ac",
+  "url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.36/beta/9ee04bef/linuxqq_3.2.34-53644_amd64.deb",
+  "bytes": 187185496,
+  "sha256": "436c65e1dd28422e128a21cbddb5fe4e2e6c079d7f27fec2541e014d38cc336e",
   "metadataSource": "compatibility/linux-qq.json"
 }

@@ -1,24 +1,27 @@
 # [**Cherry-blossoms-cat**](https://github.com/linjianyan0229/Cherry-blossoms-cat)
 
-**Cherry-blossoms-cat** 是一条面向个人使用的 NapCat 源码维护分支。项目以 NapCat `v4.18.42` 源码快照为基线，持续跟进 QQ/NTQQ 客户端版本变化，首个内测版本为 `0.0.1`。
+**Cherry-blossoms-cat** 是一条面向个人使用的 NapCat 源码维护分支。项目以 NapCat `v4.18.42` 源码快照为基线，持续跟进 QQ/NTQQ 客户端版本变化，首个公开版本为 `0.0.1`。
 
 本仓库的项目名称和发行包名称为 Cherry-blossoms-cat；底层核心源自 NapCat，保留原有版权、许可证和各组件的第三方许可声明。它不是对 NapCat 原项目来源或权利的替代声明。
 
-## 内测发行包
+## 公开发行包
 
-GitHub Actions 会在推送 `v*` 版本标签时构建 Shell 和 Framework 发行包，并将它们作为 GitHub 预发行版附件发布。首版内测使用标签 `v0.0.1`。
+GitHub Actions 会在推送 `v*` 版本标签时自动构建 Shell、Framework、Linux 启动包和 Linux amd64 Docker 安装包，并将它们作为 GitHub 正式发行版附件发布。首个公开版本使用标签 `v0.0.1`。
 
 发布附件：
 
 - `Cherry-blossoms-cat-Shell-0.0.1.zip`：Shell 运行包
 - `Cherry-blossoms-cat-Framework-0.0.1.zip`：Framework 运行包
 - `SHA256SUMS.txt`：附件校验值
+- `Cherry-blossoms-cat-Docker-linux-amd64-0.0.1.tar.gz`：Linux amd64 离线镜像
+- `Cherry-blossoms-cat-Docker-deploy-0.0.1.zip`：Docker 部署安装包
+- `Cherry-blossoms-cat-Docker-image-0.0.1.json`、`DOCKER-SHA256SUMS.txt`：镜像来源与校验文件
 
 构建工作流仅负责打包，不在 GitHub Runner 上执行测试。所有类型检查和项目测试都必须在 [指定的隔离测试服务器](TESTING.md) 上执行。
 
 ### 部署后的版本检测与更新
 
-版本检测和 WebUI 在线更新固定使用 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)。检测包含内测预发布版本，按语义版本排序，只展示已公开发布且 Shell、Framework 和 `SHA256SUMS.txt` 附件齐全的发行；草稿、单独 Git 标签和 Actions 审阅产物不作为在线更新版本。查询失败时显示错误，不回退到上游仓库。
+版本检测和 WebUI 在线更新固定使用 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)。检测正式发行版本，按语义版本排序，只展示已公开发布且 Shell、Framework 和 `SHA256SUMS.txt` 附件齐全的发行；草稿、预发布版、单独 Git 标签和 Actions 审阅产物不作为在线更新版本。查询失败时显示错误，不回退到上游仓库。
 
 文件部署在下载后先核对同一 Release 的 ZIP 大小和 SHA-256，再解压及替换程序文件，保留现有配置和用户插件。旧版未校验的待更新记录不会自动应用。Docker 部署同样检测本仓库版本，但通过宿主机部署目录中的 `update.sh` 替换镜像，详见 [Docker 更新说明](DOCKER.md)。构建版本由本次 `NAPCAT_VERSION` 或源码版本决定，不借用远端标签或旧版本缓存。
 
