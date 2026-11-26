@@ -41,3 +41,5 @@ pnpm --filter napcat-test test --run loaderPaths.test.ts
 ```
 
 在指定 Linux 测试服务器使用 Wine 时，需运行官方 Windows Node，并明确记录 Wine 版本、Node 版本和测试结果。该结果属于 Wine 兼容环境验证，原生 Windows 验证仍需指定服务器具备相应的隔离运行环境。
+
+已知 Wine 11.0 的 `cmd` 会重新展开 `%~dp0` 插入的路径，删除其中未配对的 `%`，使此用例中的目录定位失败。2026-11-26 使用官方 Windows x64 Node 20.20.2 实测该文件为 4 项通过、此项失败。包含 `%` 的原始用例仍需在原生 Windows 隔离环境补验。
