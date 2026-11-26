@@ -11,7 +11,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      CHERRY_QQ_VERSION: ${CHERRY_QQ_VERSION:-3.2.35-54395}
+      CHERRY_QQ_VERSION: ${CHERRY_QQ_VERSION:-3.2.34-53644}
     volumes:
       - runtime:/work
       - config:/work/config
@@ -36,7 +36,7 @@ services:
 volumes:
   # A new QQ build gets a new runtime copy; account data/config remain shared.
   runtime:
-    name: ${COMPOSE_PROJECT_NAME:-cherry-cat-preview}-runtime-qq-${CHERRY_QQ_VERSION:-3.2.35-54395}
+    name: ${COMPOSE_PROJECT_NAME:-cherry-cat}-runtime-qq-${CHERRY_QQ_VERSION:-3.2.34-53644}
   config:
   plugins:
   profile:

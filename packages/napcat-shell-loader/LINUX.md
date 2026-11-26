@@ -4,7 +4,7 @@
 
 已真实验证 Linux x64 的 QQ **3.2.34-53644**：QQ Electron **40.0.0** / Node **24.11.1**，原生 packet/napi 模块加载、packet 初始化、WebUI 鉴权和扫码等待阶段正常。Linux arm64 已有原生文件和版本参数映射，但尚未完成真机启动验证；其他 QQ 版本也需重新核对原生接口与偏移适配。旁路函数的整体成功返回不能证明六项检测绕过全部生效。
 
-**0.0.2-rc.1** 补齐 **3.2.35-54395 x64** 的 packet/napi Hook 偏移。QQ 运行时为 Electron 40.0.0 / Node 24.11.1；MoeHoo 正常首次初始化成功，并捕获双向心跳、校时和二维码协议包回调；wrapper 加载后 Napi Hook 初始化返回 `true`。新版本的账号登录、用户消息和 Buffer 发包响应链尚未验证，反检测效果也未证明，因此使用预览发行级别。偏移证据与测试范围见发行包里的 `LINUX_QQ_MAINTENANCE.md` 和 `compatibility/evidence/linux-qq-54395-native.json`。
+**0.0.1** 的公开 Docker 包固定使用已完成登录验证的 **3.2.34-53644 x64**。QQ 运行时为 Electron 40.0.0 / Node 24.11.1；使用发行包前仍应按完整 QQ Build 核对兼容性。更新的 **3.2.35-54395 x64** packet/napi Hook 适配仍记录在 `LINUX_QQ_MAINTENANCE.md` 和 `compatibility/evidence/` 中，暂不作为本公开 Docker 包的固定客户端。
 
 ## 前置条件
 

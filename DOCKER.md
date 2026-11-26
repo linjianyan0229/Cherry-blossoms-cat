@@ -1,16 +1,16 @@
-# Cherry-blossoms-cat Docker 内测包
+# Cherry-blossoms-cat Docker 公开包
 
-Docker 发行使用同一次 GitHub Actions 构建的 Shell ZIP，不重复编译项目。本轮 **0.0.2-rc.1 新 QQ 预览**镜像只支持 **Linux amd64**，包含锁定的 **QQ 3.2.35-54395** 完整安装树、系统依赖和 Shell；QQ 核心运行于客户端自身的定制 Electron。指定远端新隔离实例已完成扫码登录，正常 engine 启动后 napi 首次初始化返回 `true`，同进程 packet 持续产生双向协议包回调；最近联系人、群历史和按 ID 读取消息均成功。尚未验证主动发送消息、长期事件推送或反检测效果。
+Docker 发行使用同一次 GitHub Actions 构建的 Shell ZIP，不重复编译项目。本轮 **0.0.1** 镜像只支持 **Linux amd64**，包含已完成登录验证的 **QQ 3.2.34-53644** 完整安装树、系统依赖和 Shell；QQ 核心运行于客户端自身的定制 Electron。尚未验证主动发送消息、长期事件推送或反检测效果。
 
-QQ **3.2.34-53644** 保留为历史已登录验证基线。预览使用独立项目和全新 profile，不自动替换已有已登录实例。构建清单中的 QQ pin 仍按最低启动验证等级审核，不能由镜像构建成功推断账号或消息兼容；新 QQ 预览仅以预发布版本发行。
+QQ **3.2.34-53644** 是本公开 Docker 包固定的已登录验证基线。部署使用独立项目和全新 profile，不自动替换已有已登录实例。构建清单中的 QQ pin 仍按最低启动验证等级审核，不能由镜像构建成功推断完整消息兼容。
 
-每个 `v*` 发行标签构建 GHCR 版本镜像与 `latest` 标签，同时在 GitHub Release 附加离线镜像、部署 ZIP、镜像身份/来源和 SHA-256。`latest` 代表最近成功发布的内测构建；旧标签重跑、不同标签并发后，它不保证最高语义版本，也不表示稳定版。Docker job 使用共享发布锁，避免版本与 latest 的推送相互交错。手动运行工作流只生成 Actions 构建产物，不推镜像或发布 Release。构建过程不运行 QQ、项目测试或应用健康检查。
+每个 `v*` 发行标签构建 GHCR 版本镜像与 `latest` 标签，同时在 GitHub Release 附加离线镜像、部署 ZIP、镜像身份/来源和 SHA-256。`latest` 代表最近成功发布的公开构建；旧标签重跑、不同标签并发后，它不保证最高语义版本。Docker job 使用共享发布锁，避免版本与 latest 的推送相互交错。手动运行工作流只生成 Actions 构建产物，不推镜像或发布 Release。构建过程不运行 QQ、项目测试或应用健康检查。
 
 GitHub 并发锁只保留一个运行作业和一个待运行作业；密集推送多个标签时，被替换取消的 Docker job 需要在 Actions 中重新运行。常规发行应等待当前 Docker job 完成后再发下一标签。
 
 ## 首次部署
 
-下载相同 Release 的 `*-Docker-deploy-*.zip`，解压到专门的个人预览部署目录。部署 ZIP 中的 `.env` 只包含镜像版本、QQ Build 和 Compose 项目名称，没有账号或令牌。本预览默认 `COMPOSE_PROJECT_NAME=cherry-cat-preview`，首次使用全新账号数据卷；请勿把旧版账号数据挂进预览。先查看 `.env` 和 `compose.yml`，再执行：
+下载相同 Release 的 `*-Docker-deploy-*.zip`，解压到专门的个人部署目录。部署 ZIP 中的 `.env` 只包含镜像版本、QQ Build 和 Compose 项目名称，没有账号或令牌。本公开包默认 `COMPOSE_PROJECT_NAME=cherry-cat`，首次使用全新账号数据卷；请勿把旧版账号数据挂进新部署。先查看 `.env` 和 `compose.yml`，再执行：
 
 ```bash
 docker compose pull cherry
@@ -28,7 +28,7 @@ GHCR 新镜像默认可能为私有包；个人使用可保持私有。拉取私
 
 ## 配置、账号与版本更新
 
-WebUI 的版本检测固定查询 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)，包含完整的已发布预发行版，按语义版本排序，不使用上游版本或 Actions 临时包。镜像设置 `NAPCAT_IMAGE_MANAGED=1`，WebUI 和后端均阻止容器内文件更新；检测到新版本后请按下面的宿主机更新流程操作。此行为需要使用包含更新源修复的新构建，旧镜像不会因仓库合并自动获得修复。
+WebUI 的版本检测固定查询 [本仓库 Releases](https://github.com/linjianyan0229/Cherry-blossoms-cat/releases)，只使用完整的已发布正式版，按语义版本排序，不使用上游版本或 Actions 临时包。镜像设置 `NAPCAT_IMAGE_MANAGED=1`，WebUI 和后端均阻止容器内文件更新；检测到新版本后请按下面的宿主机更新流程操作。此行为需要使用包含更新源修复的新构建，旧镜像不会因仓库合并自动获得修复。
 
 Compose 的 `profile` 卷持久化 QQ 数据及客户端 HOME；`config` 卷保存 Shell/WebUI 配置，`plugins` 卷保存用户插件。内置插件来自同次编译的发行包，仅在插件卷缺少 `napcat-plugin-builtin` 目录时初始化，不覆盖已有插件。`runtime` 卷存放工作目录、缓存、日志及完整 QQ 运行副本，其名字含 QQ Build。首次使用空卷时 Docker 从镜像目录继承 UID 1000 的所有权；已有 bind mount 需要维护者自行准备合适权限。
 
@@ -50,7 +50,7 @@ bash ./update.sh
 
 ```bash
 sha256sum --check DOCKER-SHA256SUMS.txt
-docker load --input Cherry-blossoms-cat-Docker-linux-amd64-0.0.2-rc.1.tar.gz
+docker load --input Cherry-blossoms-cat-Docker-linux-amd64-0.0.1.tar.gz
 # 解压部署 ZIP，并在其目录中执行；.env 必须使用离线包记录的版本标签。
 docker compose up -d --pull never cherry
 ```
@@ -60,7 +60,7 @@ docker compose up -d --pull never cherry
 部署包包含只读取归档的 `archive-config-digest.cjs`。在提供系统 Node.js 和 tar 的环境中，可按实际离线文件名执行：
 
 ```bash
-node ./archive-config-digest.cjs ../Cherry-blossoms-cat-Docker-linux-amd64-0.0.2-rc.1.tar.gz
+node ./archive-config-digest.cjs ../Cherry-blossoms-cat-Docker-linux-amd64-0.0.1.tar.gz
 ```
 
 输出应与 `image.json` 的 `configDigest` 一致。读取器仅接受 `64位hash.json` 或 `blobs/sha256/64位hash` 配置路径，并核对路径摘要与真实文件 SHA-256；不解包到文件系统、不加载镜像或启动应用。该配置摘要与 `DOCKER-SHA256SUMS.txt` 的完整归档校验共同使用。

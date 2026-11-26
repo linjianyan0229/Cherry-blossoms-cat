@@ -7,7 +7,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, renameSync, unlinkSync } from 'node:fs';
+import { existsSync, renameSync } from 'node:fs';
 import { setOutput } from './lib/github.ts';
 
 type BuildTarget = 'framework' | 'shell';
@@ -101,20 +101,14 @@ function postBuild (target: BuildTarget): void {
 
   renameSync(srcDir, destDir);
 
-  // Install production dependencies
-  console.log('→ Installing production dependencies');
+  // Install production dependencies and keep this build's exact resolution in the package.
+  console.log('→ Installing production dependencies and recording the lockfile');
   // --omit=dev still resolves dev peer dependencies; remove build tooling first.
-  execSync('npm pkg delete devDependencies && npm install --omit=dev', {
+  execSync('npm pkg delete devDependencies && npm install --omit=dev --package-lock=true', {
     cwd: destDir,
     stdio: 'inherit',
     shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/bash',
   });
-
-  // Remove package-lock.json
-  const lockFile = `${destDir}/package-lock.json`;
-  if (existsSync(lockFile)) {
-    unlinkSync(lockFile);
-  }
 
   console.log(`✓ Build output ready at ${destDir}`);
 }

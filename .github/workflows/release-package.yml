@@ -1,4 +1,4 @@
-name: Cherry-blossoms-cat 内测构建
+name: Cherry-blossoms-cat 公开发行
 
 on:
   push:
@@ -7,16 +7,16 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 内测包版本号
+        description: 公开发行版本号
         required: true
-        default: 0.0.2-rc.1
+        default: 0.0.1
         type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: 内测构建-${{ github.ref }}
+  group: 公开发行-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -74,10 +74,18 @@ jobs:
           pnpm run build:framework
           pnpm --filter napcat-plugin-builtin run build
 
-      - name: 为运行包安装生产依赖
+      - name: 为运行包安装并锁定生产依赖
         shell: bash
         run: |
           set -euo pipefail
+          runtime_dir="$(mktemp -d "$RUNNER_TEMP/napcat-runtime.XXXXXX")"
+          cp package.json "$runtime_dir/package.json"
+          (
+            cd "$runtime_dir"
+            npm pkg delete devDependencies
+            # Resolve the latest versions allowed by package.json once per release.
+            npm install --omit=dev --package-lock=true
+          )
           for target in shell framework; do
             if [[ "$target" == "shell" ]]; then
               package_dir="packages/napcat-shell/dist"
@@ -87,7 +95,8 @@ jobs:
             (
               cd "$package_dir"
               npm pkg delete devDependencies
-              npm install --omit=dev --package-lock=false
+              cp -R "$runtime_dir/node_modules" ./node_modules
+              cp "$runtime_dir/package-lock.json" ./package-lock.json
             )
           done
 
@@ -151,38 +160,38 @@ jobs:
       - name: 上传 GitHub Actions 构建产物
         uses: actions/upload-artifact@v6
         with:
-          name: Cherry-blossoms-cat-${{ env.NAPCAT_VERSION }}-内测包
+          name: Cherry-blossoms-cat-${{ env.NAPCAT_VERSION }}-公开包
           path: |
             Cherry-blossoms-cat-*.zip
             SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
 
-      - name: 发布 GitHub 内测版
+      - name: 发布 GitHub 正式版
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Cherry-blossoms-cat 内测版 ${{ github.ref_name }}
-          prerelease: true
+          name: Cherry-blossoms-cat 正式版 ${{ github.ref_name }}
+          prerelease: false
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
             Cherry-blossoms-cat-*.zip
             SHA256SUMS.txt
           body: |
-            Cherry-blossoms-cat 内测版本。此工作流仅构建并打包 Shell、Framework 和 Linux amd64 Docker 发行包，不运行项目测试或启动 QQ。
+            Cherry-blossoms-cat 正式版本。此工作流自动构建并打包 Shell、Framework、Linux 启动包和 Linux amd64 Docker 安装包，不运行项目测试或启动 QQ。
 
             所有项目测试仅在维护者指定的隔离服务器上运行；请先核对相应 QQ/NTQQ 版本兼容性。
 
-            本轮 Docker 为 QQ 3.2.35-54395 新版预览：指定远端隔离实例已扫码登录，napi 首次初始化返回 true，packet 持续产生双向协议回调；最近联系人、群历史及按 ID 读取消息成功。尚未验证主动发送消息、长期事件推送或反检测效果。QQ 3.2.34-53644 保留为历史已登录验证基线。
+            本轮 Docker 固定使用已完成扫码登录和核心在线验证的 Linux QQ 3.2.34-53644 amd64。验证范围不代表主动发送消息、长期事件推送或反检测效果；使用前仍应核对目标 QQ/NTQQ 版本兼容性。
 
-            Docker job 成功后追加离线镜像、部署 ZIP 和来源/校验文件。部署 .env 锁定本发行的完整版本，默认 cherry-cat-preview 项目及全新 profile；更新需修改目标版本后执行 update.sh，不更动既有已登录实例。
+            Docker job 成功后追加离线镜像、部署 ZIP 和来源/校验文件。部署 .env 锁定本发行的完整版本，默认使用独立项目和全新 profile；更新需修改目标版本后执行 update.sh，不更动既有已登录实例。
 
-            GHCR latest 代表最近成功发布的内测构建，旧标签重跑或不同标签并发可改变它，不保证最高语义版本。镜像不自动跟进 QQ；个人部署请使用完整版本或 registry digest。
+            GHCR latest 代表最近成功发布的公开构建，旧标签重跑或不同标签并发可改变它，不保证最高语义版本。镜像不自动跟进 QQ；个人部署请使用完整版本或 registry digest。
 
   build-docker:
-    name: 构建 Linux amd64 Docker 更新包
+    name: 构建 Linux amd64 Docker 安装包
     needs: build-and-package
     runs-on: ubuntu-latest
     concurrency:
@@ -200,7 +209,7 @@ jobs:
       - name: 下载同次 Shell 构建产物
         uses: actions/download-artifact@v7
         with:
-          name: Cherry-blossoms-cat-${{ needs.build-and-package.outputs.version }}-内测包
+          name: Cherry-blossoms-cat-${{ needs.build-and-package.outputs.version }}-公开包
           path: release-input
 
       - name: 准备白名单构建目录与锁定 QQ 安装包
@@ -223,7 +232,7 @@ jobs:
           [[ "$QQ_SHA256" =~ ^[0-9a-f]{64}$ ]]
           [[ "$QQ_BYTES" =~ ^[1-9][0-9]*$ ]]
           [[ "$QQ_URL" == https://qqdl.gtimg.cn/* ]]
-          # Login verification does not promote a preview pin to stable.
+          # A preview QQ pin is never promoted into a public release.
           if [[ "$QQ_CHANNEL" == preview ]]; then [[ "$RELEASE_VERSION" == *-* ]]; fi
 
           # A client without login evidence is restricted to a preview release,
@@ -344,7 +353,7 @@ jobs:
           cp docker/compose.yml docker/update.sh docker/archive-config-digest.cjs DOCKER.md docker/qq-client.json docker/QQ-SOURCE.md docker-release/deploy/
           cp "docker-release/$metadata" docker-release/deploy/image.json
           chmod +x docker-release/deploy/update.sh
-          printf 'CHERRY_IMAGE=%s:%s\nCHERRY_QQ_VERSION=%s\nCOMPOSE_PROJECT_NAME=cherry-cat-preview\nCHERRY_WEBUI_PORT=6099\n' \
+          printf 'CHERRY_IMAGE=%s:%s\nCHERRY_QQ_VERSION=%s\nCOMPOSE_PROJECT_NAME=cherry-cat\nCHERRY_WEBUI_PORT=6099\n' \
             "$IMAGE" "$RELEASE_VERSION" "$QQ_VERSION" > docker-release/deploy/.env
           (cd docker-release/deploy && zip -q -r "../$deploy_zip" .)
           (cd docker-release && sha256sum "$archive" "$deploy_zip" "$metadata" > DOCKER-SHA256SUMS.txt)
@@ -361,12 +370,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: 将 Docker 更新包追加至同一内测 Release
+      - name: 将 Docker 安装包追加至同一正式 Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          prerelease: true
+          prerelease: false
           fail_on_unmatched_files: true
           files: |
             docker-release/Cherry-blossoms-cat-Docker-*.tar.gz
