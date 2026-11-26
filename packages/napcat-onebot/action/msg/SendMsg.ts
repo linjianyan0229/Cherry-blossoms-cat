@@ -21,8 +21,8 @@ import { UploadForwardMsgParams } from '@/napcat-core/packet/transformer/message
 
 export const SendMsgPayloadSchema = Type.Object({
   message_type: Type.Optional(Type.Union([Type.Literal('private'), Type.Literal('group')], { description: '消息类型 (private/group)' })),
-  user_id: Type.Optional(Type.String({ description: '用户QQ' })),
-  group_id: Type.Optional(Type.String({ description: '群号' })),
+  user_id: Type.Optional(Type.Union([Type.String(), Type.Number()], { description: '用户QQ' })),
+  group_id: Type.Optional(Type.Union([Type.String(), Type.Number()], { description: '群号' })),
   message: OB11MessageMixTypeSchema,
   auto_escape: Type.Optional(Type.Union([Type.Boolean(), Type.String()], { description: '是否作为纯文本发送' })),
   // 以下为扩展字段
@@ -134,7 +134,10 @@ export class SendMsgBase extends OneBotAction<SendMsgPayload, ReturnDataType> {
   override actionTags = ['消息接口'];
 
   protected override async check (payload: SendMsgPayload): Promise<BaseCheckResult> {
-    const messages = normalize(payload.message);
+    const messages = normalize(
+      payload.message,
+      typeof payload.auto_escape === 'string' ? payload.auto_escape === 'true' : !!payload.auto_escape
+    );
     const nodeElementLength = getSpecialMsgNum(messages, OB11MessageDataType.node);
     if (nodeElementLength > 0 && nodeElementLength !== messages.length) {
       return {

@@ -3,6 +3,7 @@ import '../napcat-onebot/action/stream/StreamBasic';
 import { describe, expect, it, vi } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { NTQQWebApi } from '@/napcat-core/apis/webapi';
 import { createAlbumCommentRequest, createAlbumMediaFeed } from '@/napcat-core/data/album';
 import type { NodeIKernelAlbumService } from '@/napcat-core/services/NodeIKernelAlbumService';
@@ -49,6 +50,7 @@ describe('do_group_album_comment native arguments', () => {
   // An unbound service parses arguments but cannot log in or submit a comment.
   it.skipIf(!process.env['NAPCAT_TEST_QQ_WRAPPER'])('passes native argument conversion (issue #1979)', () => {
     const wrapperPath = resolve(process.env['NAPCAT_TEST_QQ_WRAPPER']!);
+    const qqExecutable = process.env['NAPCAT_TEST_QQ_EXECUTABLE'];
     const args = [
       1234,
       { map_info: [], map_bytes_info: [], map_user_account: [] },
@@ -57,7 +59,7 @@ describe('do_group_album_comment native arguments', () => {
       createAlbumMediaFeed('10001', 'album-id', 'photo-id'),
       createAlbumCommentRequest('10001', '测试评论', 1234567890),
     ];
-    const probe = spawnSync(process.execPath, ['-e', `
+    const probeSource = `
       const assert = require('node:assert/strict');
       const fs = require('node:fs');
       const { wrapperPath, args } = JSON.parse(fs.readFileSync(0, 'utf8'));
@@ -70,16 +72,22 @@ describe('do_group_album_comment native arguments', () => {
       assert.throws(() => service.doQunComment(...legacyArgs), /Cannot convert undefined or null to object/);
       // Reaching the unbound-service check proves all six arguments were converted.
       assert.throws(() => service.doQunComment(...args), /implementation of IKernelAlbumService is not valid/);
+      fs.writeSync(1, 'NAPCAT_QQ_NATIVE_PROBE_OK ' + JSON.stringify(process.versions) + '\\n');
       process.exit(0);
-    `], {
+    `;
+    const probeArgs = qqExecutable
+      ? [fileURLToPath(new URL('./fixtures/qq-native-probe.cjs', import.meta.url)), resolve(qqExecutable), probeSource]
+      : ['-e', probeSource];
+    const probe = spawnSync(process.execPath, probeArgs, {
       cwd: dirname(wrapperPath),
       input: JSON.stringify({ wrapperPath, args }),
       encoding: 'utf8',
-      timeout: 10000,
+      timeout: qqExecutable ? 30000 : 10000,
       windowsHide: true,
     });
 
     expect(probe.error).toBeUndefined();
     expect(probe.status, probe.stderr || probe.stdout).toBe(0);
+    expect(probe.stdout).toContain('NAPCAT_QQ_NATIVE_PROBE_OK ');
   });
 });

@@ -15,6 +15,8 @@ The NapCat release version and the installed QQ/NTQQ client version are separate
 
 Linux QQ 的官方版本来源、维护清单、检查命令和每个版本的验证步骤见 [LINUX_QQ_MAINTENANCE.md](LINUX_QQ_MAINTENANCE.md)。
 
+OneBot 11 动作清单、协议分类、请求 ID 和后缀别名的兼容边界见 [ONEBOT_API_COMPATIBILITY.md](ONEBOT_API_COMPATIBILITY.md)。
+
 When a QQ/NTQQ update changes behavior, identify its full version and build first, then inspect the relevant compatibility surfaces:
 
 1. QQ version/build discovery and AppID/QUA selection in `packages/napcat-core/helper/qq-basic-info.ts` and `packages/napcat-core/external/appid.json`.
