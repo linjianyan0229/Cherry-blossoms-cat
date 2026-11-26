@@ -348,8 +348,8 @@ export const OB11MessageMixTypeSchema = Type.Union([
 // 发送消息请求
 export const OB11PostSendMsgSchema = Type.Object({
   message_type: Type.Optional(Type.Union([Type.Literal('private'), Type.Literal('group')], { description: '消息类型' })),
-  user_id: Type.Optional(Type.String({ description: '用户QQ号' })),
-  group_id: Type.Optional(Type.String({ description: '群号' })),
+  user_id: Type.Optional(Type.Union([Type.String(), Type.Number()], { description: '用户QQ号' })),
+  group_id: Type.Optional(Type.Union([Type.String(), Type.Number()], { description: '群号' })),
   message: OB11MessageMixTypeSchema,
   messages: Type.Optional(OB11MessageMixTypeSchema),
   auto_escape: Type.Optional(Type.Union([Type.Boolean(), Type.String()], { description: '是否作为纯文本发送' })),
@@ -477,6 +477,6 @@ export enum OB11MessageType {
 
 export interface OB11PostContext {
   message_type?: 'private' | 'group';
-  user_id?: string;
-  group_id?: string;
+  user_id?: string | number;
+  group_id?: string | number;
 }

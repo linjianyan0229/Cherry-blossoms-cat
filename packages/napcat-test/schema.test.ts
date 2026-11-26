@@ -1,9 +1,12 @@
+// StreamBasic must be evaluated before the action base because of their circular import.
+import '../napcat-onebot/action/stream/StreamBasic';
 import { describe, expect, test } from 'vitest';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { Value } from '@sinclair/typebox/value';
 import { Type } from '@sinclair/typebox';
 
 import { OB11MessageDataSchema, OB11MessageSchema, OB11PostSendMsgSchema } from '../napcat-onebot/types/message';
+import { SendMsgPayloadSchema } from '../napcat-onebot/action/msg/SendMsg';
 import { OB11MessageSchema as OB11ActionMessageSchema } from '../napcat-onebot/action/schemas';
 import { OneBotConfigSchema, loadConfig as loadOneBotConfig, OneBotConfig } from '../napcat-onebot/config';
 import { NapcatConfigSchema } from '../napcat-core/helper/config';
@@ -35,19 +38,23 @@ describe('NapCat Schemas Compilation', () => {
 });
 
 describe('NapCat Schemas Validation & Coercion', () => {
-  test('should coerce numeric user_id to string in OB11PostSendMsgSchema', () => {
+  test('should accept numeric user_id and group_id in send-message schemas', () => {
     const payload = {
       message_type: 'private',
       user_id: 123456,
+      group_id: 654321,
       message: [{ type: 'text', data: { text: 'hello' } }],
     };
 
-    let data: unknown = structuredClone(payload);
-    data = Value.Parse(OB11PostSendMsgSchema, data);
+    for (const schema of [OB11PostSendMsgSchema, SendMsgPayloadSchema]) {
+      let data: unknown = structuredClone(payload);
+      data = Value.Parse(schema, data);
 
-    const compiler = TypeCompiler.Compile(OB11PostSendMsgSchema);
-    expect(compiler.Check(data)).toBe(true);
-    expect((data as Record<string, unknown>)['user_id']).toBe('123456');
+      const compiler = TypeCompiler.Compile(schema);
+      expect(compiler.Check(data)).toBe(true);
+      expect(String((data as Record<string, unknown>)['user_id'])).toBe('123456');
+      expect(String((data as Record<string, unknown>)['group_id'])).toBe('654321');
+    }
   });
 
   test('should validate complex mixed messages correctly', () => {

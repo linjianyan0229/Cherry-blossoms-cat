@@ -5,6 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TSchema } from '@sinclair/typebox';
 import { OneBotAction, ActionExamples } from '@/napcat-onebot/action/OneBotAction';
+import { ActionProtocol, classifyActionProtocol } from '@/napcat-onebot/action/protocol';
 import { napCatVersion } from 'napcat-common/src/version';
 import * as MessageSchemas from '@/napcat-onebot/types/message';
 import * as ActionSchemas from '@/napcat-onebot/action/schemas';
@@ -13,6 +14,14 @@ import * as ActionSchemas from '@/napcat-onebot/action/schemas';
 /*                                   基础类型                                  */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * API protocol provenance used by the generated catalogue.
+ *
+ * `onebot11` is reserved for the public and hidden OneBot 11 action sets, `go-cqhttp`
+ * marks actions kept for legacy compatibility, and `napcat` covers
+ * NapCat-specific extensions (including actions that are not part of either
+ * upstream contract).
+ */
 interface ActionSchemaInfo {
   payload?: TSchema;
   return?: TSchema;
@@ -22,6 +31,7 @@ interface ActionSchemaInfo {
   payloadExample?: unknown;
   returnExample?: unknown;
   errorExamples?: Array<{ code: number, description: string; }>;
+  protocol: ActionProtocol;
 }
 
 type JsonObject = { [key: string]: unknown; };
@@ -491,6 +501,7 @@ export function initSchemas () {
       payloadExample: action.payloadExample,
       returnExample: action.returnExample,
       errorExamples: action.errorExamples,
+      protocol: classifyActionProtocol(handler.actionName),
     };
   });
 
@@ -510,6 +521,7 @@ export function initSchemas () {
       payloadExample: action.payloadExample,
       returnExample: action.returnExample,
       errorExamples: action.errorExamples,
+      protocol: classifyActionProtocol(handler.actionName),
     };
   });
 }
@@ -548,6 +560,9 @@ function createOpenAPIDocument (): Record<string, unknown> {
       version: napCatVersion,
     },
     tags: [
+      { name: 'OneBot 11 标准', description: 'OneBot 11 公开及隐藏标准动作' },
+      { name: '生态兼容', description: '为生态兼容保留的兼容动作' },
+      { name: 'NapCat 扩展', description: 'NapCat 提供的扩展动作' },
       { name: '消息接口', description: '发送、删除、获取消息相关接口' },
       { name: '群组接口', description: '群组管理、成员管理相关接口' },
       { name: '用户接口', description: '好友管理、个人信息相关接口' },
@@ -635,7 +650,15 @@ function appendActionPaths (openapi: Record<string, unknown>) {
         summary: schemas.summary || actionName,
         deprecated: false,
         description: schemas.description || '',
-        tags: schemas.tags || [],
+        tags: [
+          schemas.protocol === 'onebot11'
+            ? 'OneBot 11 标准'
+            : schemas.protocol === 'go-cqhttp'
+              ? '生态兼容'
+              : 'NapCat 扩展',
+          ...(schemas.tags || []),
+        ],
+        'x-napcat-protocol': schemas.protocol,
         parameters: [],
         requestBody: {
           description: 'API 参数',
